@@ -2087,7 +2087,7 @@ div[data-testid="stDataFrame"] {
 .nf-anim-fadeup   { animation: fadeUp 0.5s ease; }
 .nf-anim-cardin   { animation: cardIn 0.5s ease both; }
 
-/* ─── CINEMATIC INTRO SPLASH OVERLAY (PURE CSS AUTO-DISMISS) ─── */
+/* ─── CINEMATIC INTRO SPLASH OVERLAY (PURE CSS 3.8s AUTO-DISMISS) ─── */
 .cv-splash {
   position: fixed;
   inset: 0;
@@ -2098,8 +2098,8 @@ div[data-testid="stDataFrame"] {
   justify-content: center;
   overflow: hidden;
   user-select: none;
-  pointer-events: none;
-  animation: cvSplashAutoDismiss 1.8s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+  pointer-events: auto;
+  animation: cvSplashAutoDismiss 3.8s cubic-bezier(0.16, 1, 0.3, 1) forwards;
 }
 
 @keyframes cvSplashAutoDismiss {
@@ -2107,16 +2107,15 @@ div[data-testid="stDataFrame"] {
     opacity: 1;
     visibility: visible;
   }
-  60% {
+  78% {
     opacity: 1;
     visibility: visible;
     transform: scale(1);
   }
-  85% {
+  94% {
     opacity: 0;
     visibility: visible;
-    transform: scale(1.03);
-    filter: blur(4px);
+    transform: scale(1.02);
   }
   100% {
     opacity: 0;
@@ -2128,10 +2127,11 @@ div[data-testid="stDataFrame"] {
 
 .cv-splash.cv-dismissed {
   opacity: 0 !important;
-  transform: scale(1.04) !important;
+  transform: scale(1.03) !important;
   pointer-events: none !important;
   visibility: hidden !important;
   display: none !important;
+  transition: opacity 0.4s ease, transform 0.4s ease;
 }
 
 .cv-splash-bg {
@@ -2243,11 +2243,12 @@ div[data-testid="stDataFrame"] {
 }
 
 .cv-splash-bar {
-  width: 140px;
+  width: 180px;
   height: 3px;
   background: rgba(255, 255, 255, 0.1);
-  border-radius: 2px;
+  border-radius: 3px;
   overflow: hidden;
+  margin-top: 8px;
 }
 
 .cv-splash-bar-fill {
@@ -2255,7 +2256,23 @@ div[data-testid="stDataFrame"] {
   height: 100%;
   background: linear-gradient(90deg, #E50914, #FFC94A);
   transform: translateX(-100%);
-  animation: cvBarProgress 1.6s cubic-bezier(0.16, 1, 0.3, 1) forwards 0.2s;
+  animation: cvBarProgress 3.2s cubic-bezier(0.22, 1, 0.36, 1) forwards 0.3s;
+}
+
+.cv-splash-status {
+  font-family: 'Inter', sans-serif;
+  font-size: 11px;
+  font-weight: 600;
+  color: #9A9AA0;
+  letter-spacing: 1.5px;
+  text-transform: uppercase;
+  margin-top: 14px;
+  animation: cvStatusPulse 2.5s infinite ease-in-out;
+}
+
+@keyframes cvStatusPulse {
+  0%, 100% { opacity: 0.65; }
+  50% { opacity: 1; color: #FFFFFF; }
 }
 
 @keyframes cvBarProgress {

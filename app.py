@@ -95,6 +95,7 @@ def render_opening_intro():
         </div>
         <div class="cv-splash-tagline">YOUR CINEMATIC UNIVERSE • POWERED BY AI</div>
         <div class="cv-splash-bar"><div class="cv-splash-bar-fill"></div></div>
+        <div class="cv-splash-status">INITIALIZING AI ENGINE & CURATING SPOTLIGHT...</div>
       </div>
       <button class="cv-splash-skip" onclick="event.stopPropagation(); dismissCvSplash();">✕ Skip</button>
     </div>
@@ -104,22 +105,10 @@ def render_opening_intro():
         var el = document.getElementById('cv-splash-overlay');
         if (el) {
             el.classList.add('cv-dismissed');
-            setTimeout(function() { el.style.display = 'none'; }, 600);
+            setTimeout(function() { el.style.display = 'none'; }, 400);
         }
     }
-    (function() {
-        try {
-            if (sessionStorage.getItem('cv_intro_played')) {
-                var el = document.getElementById('cv-splash-overlay');
-                if (el) el.style.display = 'none';
-            } else {
-                sessionStorage.setItem('cv_intro_played', '1');
-                setTimeout(dismissCvSplash, 2300);
-            }
-        } catch(e) {
-            setTimeout(dismissCvSplash, 2300);
-        }
-    })();
+    setTimeout(dismissCvSplash, 3600);
     </script>
     """)
 
