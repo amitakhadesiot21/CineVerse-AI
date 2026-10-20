@@ -2087,7 +2087,7 @@ div[data-testid="stDataFrame"] {
 .nf-anim-fadeup   { animation: fadeUp 0.5s ease; }
 .nf-anim-cardin   { animation: cardIn 0.5s ease both; }
 
-/* ─── CINEMATIC INTRO SPLASH OVERLAY ─────────────────────── */
+/* ─── CINEMATIC INTRO SPLASH OVERLAY (PURE CSS AUTO-DISMISS) ─── */
 .cv-splash {
   position: fixed;
   inset: 0;
@@ -2098,8 +2098,32 @@ div[data-testid="stDataFrame"] {
   justify-content: center;
   overflow: hidden;
   user-select: none;
-  cursor: pointer;
-  transition: opacity 0.55s cubic-bezier(0.16, 1, 0.3, 1), transform 0.55s ease, visibility 0.55s;
+  pointer-events: none;
+  animation: cvSplashAutoDismiss 1.8s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+@keyframes cvSplashAutoDismiss {
+  0% {
+    opacity: 1;
+    visibility: visible;
+  }
+  60% {
+    opacity: 1;
+    visibility: visible;
+    transform: scale(1);
+  }
+  85% {
+    opacity: 0;
+    visibility: visible;
+    transform: scale(1.03);
+    filter: blur(4px);
+  }
+  100% {
+    opacity: 0;
+    visibility: hidden;
+    pointer-events: none;
+    display: none;
+  }
 }
 
 .cv-splash.cv-dismissed {
@@ -2107,6 +2131,7 @@ div[data-testid="stDataFrame"] {
   transform: scale(1.04) !important;
   pointer-events: none !important;
   visibility: hidden !important;
+  display: none !important;
 }
 
 .cv-splash-bg {

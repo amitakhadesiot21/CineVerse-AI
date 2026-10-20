@@ -124,7 +124,9 @@ def render_opening_intro():
     """)
 
 
-render_opening_intro()
+if not st.session_state.get("intro_shown", False):
+    st.session_state.intro_shown = True
+    render_opening_intro()
 
 
 def render_brand_navbar():
@@ -981,7 +983,7 @@ with st.sidebar:
     """)
 
     if st.button("🎬 Replay Opening Intro", use_container_width=True, key="sb_replay_intro"):
-        st.html("<script>sessionStorage.removeItem('cv_intro_played');</script>")
+        st.session_state.intro_shown = False
         st.rerun()
 
     st.divider()
