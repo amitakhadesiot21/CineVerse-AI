@@ -16,8 +16,8 @@ from requests.adapters import HTTPAdapter
 # -------------------------------------------------
 
 st.set_page_config(
-    page_title="🎬 CineVerse AI",
-    page_icon="🎬",
+    page_title="CineVerse AI — Cinematic Discovery",
+    page_icon="favicon.png" if os.path.exists("favicon.png") else "🎬",
     layout="wide",
     initial_sidebar_state="collapsed"
 )
@@ -46,6 +46,127 @@ st.markdown("""
 <link rel="icon" type="image/png" sizes="512x512" href="https://raw.githubusercontent.com/amitakhadesiot21/CineVerse-AI/main/icon-512.png">
 <link rel="manifest" href="data:application/json;base64,eyJuYW1lIjogIkNpbmVWZXJzZSBBSSIsICJzaG9ydF9uYW1lIjogIkNpbmVWZXJzZSIsICJkZXNjcmlwdGlvbiI6ICJBSS1Qb3dlcmVkIE1vdmllIERpc2NvdmVyeSAmIFJlY29tbWVuZGF0aW9uIFBsYXRmb3JtIiwgInN0YXJ0X3VybCI6ICIvIiwgInNjb3BlIjogIi8iLCAiZGlzcGxheSI6ICJzdGFuZGFsb25lIiwgIm9yaWVudGF0aW9uIjogInBvcnRyYWl0LXByaW1hcnkiLCAiYmFja2dyb3VuZF9jb2xvciI6ICIjMTQxNDE0IiwgInRoZW1lX2NvbG9yIjogIiNFNTA5MTQiLCAiaWNvbnMiOiBbeyJzcmMiOiAiaHR0cHM6Ly9yYXcuZ2l0aHVidXNlcmNvbnRlbnQuY29tL2FtaXRha2hhZGVzaW90MjEvQ2luZVZlcnNlLUFJL21haW4vaWNvbi0xOTIucG5nIiwgInNpemVzIjogIjE5MngxOTIiLCAidHlwZSI6ICJpbWFnZS9wbmciLCAicHVycG9zZSI6ICJhbnkgbWFza2FibGUifSwgeyJzcmMiOiAiaHR0cHM6Ly9yYXcuZ2l0aHVidXNlcmNvbnRlbnQuY29tL2FtaXRha2hhZGVzaW90MjEvQ2luZVZlcnNlLUFJL21haW4vaWNvbi01MTIucG5nIiwgInNpemVzIjogIjUxMng1MTIiLCAidHlwZSI6ICJpbWFnZS9wbmciLCAicHVycG9zZSI6ICJhbnkgbWFza2FibGUifV19">
 """, unsafe_allow_html=True)
+
+
+def render_opening_intro():
+    """Cinematic studio intro opening animation with lens flare and emblem reveal."""
+    st.html("""
+    <div id="cv-splash-overlay" class="cv-splash" onclick="dismissCvSplash()">
+      <div class="cv-splash-bg"></div>
+      <div class="cv-splash-flare"></div>
+      <div class="cv-splash-content">
+        <div class="cv-splash-emblem">
+          <svg viewBox="0 0 100 100" width="96" height="96" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <circle cx="50" cy="50" r="46" fill="url(#introGlow)" opacity="0.5"/>
+            <path d="M64,18 C42,18 24,32 24,50 C24,68 42,82 64,82 C74,82 82,78 88,71 L75,59 C72,63 68,66 64,66 C51,66 40,58 40,50 C40,42 51,34 64,34 C68,34 72,37 75,41 L88,29 C82,22 74,18 64,18 Z" fill="url(#introRed)"/>
+            <rect x="29" y="34" width="4.5" height="7" rx="1.5" fill="#141414"/>
+            <rect x="26.5" y="46.5" width="4.5" height="7" rx="1.5" fill="#141414"/>
+            <rect x="29" y="59" width="4.5" height="7" rx="1.5" fill="#141414"/>
+            <path d="M64,39 L67,48 L76,50 L67,52 L64,61 L61,52 L52,50 L61,48 Z" fill="url(#introGold)"/>
+            <circle cx="64" cy="50" r="2.8" fill="#FFFFFF"/>
+            <defs>
+              <radialGradient id="introGlow" cx="50%" cy="50%" r="50%">
+                <stop offset="0%" stop-color="#E50914"/>
+                <stop offset="100%" stop-color="#0A0A0C" stop-opacity="0"/>
+              </radialGradient>
+              <linearGradient id="introRed" x1="0%" y1="0%" x2="100%" y2="100%">
+                <stop offset="0%" stop-color="#FF3B4E"/>
+                <stop offset="50%" stop-color="#E50914"/>
+                <stop offset="100%" stop-color="#800006"/>
+              </linearGradient>
+              <linearGradient id="introGold" x1="0%" y1="0%" x2="100%" y2="100%">
+                <stop offset="0%" stop-color="#FFF0A0"/>
+                <stop offset="100%" stop-color="#FFC94A"/>
+              </linearGradient>
+            </defs>
+          </svg>
+        </div>
+        <div class="cv-splash-wordmark">
+          <span class="cv-letter">C</span>
+          <span class="cv-letter">I</span>
+          <span class="cv-letter">N</span>
+          <span class="cv-letter">E</span>
+          <span class="cv-letter red">V</span>
+          <span class="cv-letter red">E</span>
+          <span class="cv-letter red">R</span>
+          <span class="cv-letter red">S</span>
+          <span class="cv-letter red">E</span>
+          <span class="cv-splash-badge">AI</span>
+        </div>
+        <div class="cv-splash-tagline">YOUR CINEMATIC UNIVERSE • POWERED BY AI</div>
+        <div class="cv-splash-bar"><div class="cv-splash-bar-fill"></div></div>
+      </div>
+      <button class="cv-splash-skip" onclick="event.stopPropagation(); dismissCvSplash();">✕ Skip</button>
+    </div>
+
+    <script>
+    function dismissCvSplash() {
+        var el = document.getElementById('cv-splash-overlay');
+        if (el) {
+            el.classList.add('cv-dismissed');
+            setTimeout(function() { el.style.display = 'none'; }, 600);
+        }
+    }
+    (function() {
+        try {
+            if (sessionStorage.getItem('cv_intro_played')) {
+                var el = document.getElementById('cv-splash-overlay');
+                if (el) el.style.display = 'none';
+            } else {
+                sessionStorage.setItem('cv_intro_played', '1');
+                setTimeout(dismissCvSplash, 2300);
+            }
+        } catch(e) {
+            setTimeout(dismissCvSplash, 2300);
+        }
+    })();
+    </script>
+    """)
+
+
+render_opening_intro()
+
+
+def render_brand_navbar():
+    """Renders the top sleek brand navigation bar with SVG emblem."""
+    st.html("""
+    <div class="cv-brand-nav">
+        <div class="cv-brand-logo-group">
+            <svg viewBox="0 0 100 100" class="cv-brand-emblem-svg" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <circle cx="50" cy="50" r="46" fill="url(#navGlow)" opacity="0.4"/>
+              <path d="M64,18 C42,18 24,32 24,50 C24,68 42,82 64,82 C74,82 82,78 88,71 L75,59 C72,63 68,66 64,66 C51,66 40,58 40,50 C40,42 51,34 64,34 C68,34 72,37 75,41 L88,29 C82,22 74,18 64,18 Z" fill="url(#navRed)"/>
+              <rect x="29" y="34" width="4.5" height="7" rx="1.5" fill="#141414"/>
+              <rect x="26.5" y="46.5" width="4.5" height="7" rx="1.5" fill="#141414"/>
+              <rect x="29" y="59" width="4.5" height="7" rx="1.5" fill="#141414"/>
+              <path d="M64,39 L67,48 L76,50 L67,52 L64,61 L61,52 L52,50 L61,48 Z" fill="url(#navGold)"/>
+              <circle cx="64" cy="50" r="2.8" fill="#FFFFFF"/>
+              <defs>
+                <radialGradient id="navGlow" cx="50%" cy="50%" r="50%">
+                  <stop offset="0%" stop-color="#E50914"/>
+                  <stop offset="100%" stop-color="#141414" stop-opacity="0"/>
+                </radialGradient>
+                <linearGradient id="navRed" x1="0%" y1="0%" x2="100%" y2="100%">
+                  <stop offset="0%" stop-color="#FF3B4E"/>
+                  <stop offset="50%" stop-color="#E50914"/>
+                  <stop offset="100%" stop-color="#800006"/>
+                </linearGradient>
+                <linearGradient id="navGold" x1="0%" y1="0%" x2="100%" y2="100%">
+                  <stop offset="0%" stop-color="#FFF0A0"/>
+                  <stop offset="100%" stop-color="#FFC94A"/>
+                </linearGradient>
+              </defs>
+            </svg>
+            <div class="cv-brand-name">
+                CINE<span class="accent">VERSE</span>
+                <span class="cv-brand-badge">AI</span>
+            </div>
+        </div>
+        <div class="cv-brand-live">
+            <span class="cv-live-dot"></span>
+            <span>AI Ready</span>
+        </div>
+    </div>
+    """)
 
 # -------------------------------------------------
 # TMDB API KEY & PLATFORM URLS
@@ -806,10 +927,18 @@ def render_discover_card(movie, col, index, key_prefix):
 with st.sidebar:
     st.markdown("""
     <div class="sb-header">
-        <div class="sb-logo">🎬</div>
+        <svg viewBox="0 0 100 100" class="cv-brand-emblem-svg" fill="none" xmlns="http://www.w3.org/2000/svg" style="width:36px; height:36px;">
+          <circle cx="50" cy="50" r="46" fill="#1B1F2A"/>
+          <path d="M64,18 C42,18 24,32 24,50 C24,68 42,82 64,82 C74,82 82,78 88,71 L75,59 C72,63 68,66 64,66 C51,66 40,58 40,50 C40,42 51,34 64,34 C68,34 72,37 75,41 L88,29 C82,22 74,18 64,18 Z" fill="#E50914"/>
+          <rect x="29" y="34" width="4.5" height="7" rx="1.5" fill="#141414"/>
+          <rect x="26.5" y="46.5" width="4.5" height="7" rx="1.5" fill="#141414"/>
+          <rect x="29" y="59" width="4.5" height="7" rx="1.5" fill="#141414"/>
+          <path d="M64,39 L67,48 L76,50 L67,52 L64,61 L61,52 L52,50 L61,48 Z" fill="#FFC94A"/>
+          <circle cx="64" cy="50" r="2.8" fill="#FFFFFF"/>
+        </svg>
         <div>
             <h2 class="sb-title">CineVerse AI</h2>
-            <span class="sb-status">● AI Engine Active</span>
+            <span class="sb-status">● Engine Active</span>
         </div>
     </div>
     """, unsafe_allow_html=True)
@@ -850,6 +979,10 @@ with st.sidebar:
             </div>
         </div>
     """)
+
+    if st.button("🎬 Replay Opening Intro", use_container_width=True, key="sb_replay_intro"):
+        st.html("<script>sessionStorage.removeItem('cv_intro_played');</script>")
+        st.rerun()
 
     st.divider()
 
@@ -978,8 +1111,10 @@ def render_nf_row(title: str, movies_list, key_prefix: str, show_match: bool = F
     """)
 
 # -------------------------------------------------
-# TABS (Mobile-optimized Netflix Navigation)
+# BRAND HEADER & NAVIGATION
 # -------------------------------------------------
+
+render_brand_navbar()
 
 tab_home, tab_search, tab_reco, tab_discover, tab_compare, tab_lists, tab_dash = st.tabs(
     [
