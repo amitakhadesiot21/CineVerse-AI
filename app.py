@@ -33,7 +33,7 @@ def load_css():
 
 load_css()
 
-# PWA + mobile meta tags
+# PWA + mobile meta tags & install manifest
 st.markdown("""
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
 <meta name="theme-color" content="#141414">
@@ -41,7 +41,10 @@ st.markdown("""
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="CineVerse AI">
 <meta name="mobile-web-app-capable" content="yes">
-<link rel="manifest" href="data:application/json;base64,eyJuYW1lIjoiQ2luZVZlcnNlIEFJIiwic2hvcnRfbmFtZSI6IkNpbmVWZXJzZSIsInN0YXJ0X3VybCI6Ii8iLCJkaXNwbGF5Ijoic3RhbmRhbG9uZSIsImJhY2tncm91bmRfY29sb3IiOiIjMTQxNDE0IiwidGhlbWVfY29sb3IiOiIjRTUwOTE0IiwiaWNvbnMiOlt7InNyYyI6Imh0dHBzOi8vaW1nLmlwLWFkZHIuY29tL2Vtb2ppL3R3ZW1vamkvMWY0ZmUucG5nIiwic2l6ZXMiOiIxOTJ4MTkyIiwidHlwZSI6ImltYWdlL3BuZyJ9XX0=">
+<link rel="apple-touch-icon" href="https://raw.githubusercontent.com/amitakhadesiot21/CineVerse-AI/main/icon-192.png">
+<link rel="icon" type="image/png" sizes="192x192" href="https://raw.githubusercontent.com/amitakhadesiot21/CineVerse-AI/main/icon-192.png">
+<link rel="icon" type="image/png" sizes="512x512" href="https://raw.githubusercontent.com/amitakhadesiot21/CineVerse-AI/main/icon-512.png">
+<link rel="manifest" href="data:application/json;base64,eyJuYW1lIjogIkNpbmVWZXJzZSBBSSIsICJzaG9ydF9uYW1lIjogIkNpbmVWZXJzZSIsICJkZXNjcmlwdGlvbiI6ICJBSS1Qb3dlcmVkIE1vdmllIERpc2NvdmVyeSAmIFJlY29tbWVuZGF0aW9uIFBsYXRmb3JtIiwgInN0YXJ0X3VybCI6ICIvIiwgInNjb3BlIjogIi8iLCAiZGlzcGxheSI6ICJzdGFuZGFsb25lIiwgIm9yaWVudGF0aW9uIjogInBvcnRyYWl0LXByaW1hcnkiLCAiYmFja2dyb3VuZF9jb2xvciI6ICIjMTQxNDE0IiwgInRoZW1lX2NvbG9yIjogIiNFNTA5MTQiLCAiaWNvbnMiOiBbeyJzcmMiOiAiaHR0cHM6Ly9yYXcuZ2l0aHVidXNlcmNvbnRlbnQuY29tL2FtaXRha2hhZGVzaW90MjEvQ2luZVZlcnNlLUFJL21haW4vaWNvbi0xOTIucG5nIiwgInNpemVzIjogIjE5MngxOTIiLCAidHlwZSI6ICJpbWFnZS9wbmciLCAicHVycG9zZSI6ICJhbnkgbWFza2FibGUifSwgeyJzcmMiOiAiaHR0cHM6Ly9yYXcuZ2l0aHVidXNlcmNvbnRlbnQuY29tL2FtaXRha2hhZGVzaW90MjEvQ2luZVZlcnNlLUFJL21haW4vaWNvbi01MTIucG5nIiwgInNpemVzIjogIjUxMng1MTIiLCAidHlwZSI6ICJpbWFnZS9wbmciLCAicHVycG9zZSI6ICJhbnkgbWFza2FibGUifV19">
 """, unsafe_allow_html=True)
 
 # -------------------------------------------------
