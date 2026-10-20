@@ -1,0 +1,24 @@
+# Environment & Virtual Environments
+.venv/
+venv/
+env/
+ENV/
+
+# Python cache
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Streamlit local settings & secrets
+.streamlit/
+user_data.json
+
+# Local tools & executables
+cloudflared.exe
+mingit/
+*.exe
+
+# Local scratch / images
+*.png
+*.svg
+*.log
