@@ -397,7 +397,13 @@ def toggle_list(title, list_name, icon):
 
 def list_button(title, list_name, label, icon, key):
     is_in = title in st.session_state[list_name]
-    btn_label = f"✔ In {label}" if is_in else f"{icon} {label}"
+    clean_label = str(label).strip()
+    # Strip any duplicate emojis that might be passed in label
+    for prefix in [icon, "❤️", "📋", "⭐", "✔", "✓"]:
+        if clean_label.startswith(prefix):
+            clean_label = clean_label[len(prefix):].strip()
+
+    btn_label = f"✓ In {clean_label}" if is_in else f"{icon} {clean_label}"
     if st.button(btn_label, key=key, use_container_width=True):
         toggle_list(title, list_name, icon)
         st.rerun()
@@ -788,46 +794,7 @@ def render_discover_card(movie, col, index, key_prefix):
             key=f"{key_prefix}_fav_{index}_{movie_id}"
         )
 
-# -------------------------------------------------
-# HERO BANNER (Netflix style — driven by Today's Pick movie)
-# -------------------------------------------------
 
-_hero_movie = st.session_state.random_movie
-_hero_poster, _hero_rating, _hero_release, _hero_overview, _hero_genres = fetch_movie(
-    _hero_movie["movie_id"], title=_hero_movie["title"]
-)
-_hero_year  = _hero_release[:4] if _hero_release and _hero_release != "Unknown" else "N/A"
-_hero_genre_first = _hero_genres.split(",")[0].strip() if _hero_genres and _hero_genres != "Unknown" else "Movie"
-_hero_short_overview = (_hero_overview[:180] + "…") if len(_hero_overview) > 180 else _hero_overview
-_hero_trailer_url, _hero_provider, _hero_watch_url = get_card_action_links(_hero_movie["movie_id"], _hero_movie["title"])
-_hero_fallback = make_fallback_poster_svg(_hero_movie["title"])
-
-st.html(f"""
-<div class="nf-hero" style="background-image:
-    linear-gradient(to right, rgba(20,20,20,0.97) 0%, rgba(20,20,20,0.75) 40%, rgba(20,20,20,0.1) 70%, transparent 100%),
-    linear-gradient(to top, rgba(20,20,20,0.9) 0%, transparent 40%),
-    url('{_hero_poster}');">
-    <div class="nf-hero-content">
-        <div class="nf-hero-logo">🎬 CINEVERSE AI</div>
-        <h1 class="nf-hero-title">{esc(_hero_movie["title"])}</h1>
-        <div class="nf-hero-meta">
-            <span class="nf-hero-rating">⭐ {_hero_rating}</span>
-            <span class="nf-hero-year">{_hero_year}</span>
-            <span class="nf-hero-genre">{_hero_genre_first}</span>
-            <span class="nf-hero-catalog">🍿 {len(movies):,} Films</span>
-        </div>
-        <p class="nf-hero-overview">{esc(_hero_short_overview)}</p>
-        <div class="nf-hero-btns">
-            <a href="{_hero_watch_url}" target="_blank" rel="noopener noreferrer" class="nf-btn-play">
-                ▶ Play
-            </a>
-            <a href="{_hero_trailer_url}" target="_blank" rel="noopener noreferrer" class="nf-btn-info">
-                ℹ More Info
-            </a>
-        </div>
-    </div>
-</div>
-""")
 
 # -------------------------------------------------
 # SIDEBAR  (Netflix-style compact)
@@ -951,7 +918,7 @@ def render_nf_row(title: str, movies_list, key_prefix: str, show_match: bool = F
         if show_match and hasattr(movie, "get") and movie.get("match_score") is not None:
             try:
                 sc = int(movie["match_score"])
-                match_html = f'<div class="nf-card-match">🎯 {sc}% Match</div>'
+                match_html = f'<span class="nf-chip match">🎯 {sc}%</span>'
             except Exception:
                 pass
 
@@ -964,15 +931,17 @@ def render_nf_row(title: str, movies_list, key_prefix: str, show_match: bool = F
                      onerror="this.onerror=null;this.src='{fallback}';">
                 {ribbon_html}
                 <span class="rating-badge {r_class}">⭐ {rating_val}</span>
-                <div class="nf-card-hover">
-                    <div class="nf-card-info">
-                        <div class="nf-card-title">{safe_title}</div>
-                        <div class="nf-card-meta">📅 {year} &nbsp;•&nbsp; 🎭 {genre}</div>
+                <div class="nf-card-overlay">
+                    <div class="nf-card-title">{safe_title}</div>
+                    <div class="nf-card-meta">
+                        <span>📅 {year}</span>
+                        <span>•</span>
+                        <span>🎭 {genre}</span>
                         {match_html}
                     </div>
                     <div class="nf-card-actions">
                         <a href="{trailer_url}" target="_blank" rel="noopener noreferrer"
-                           class="nf-btn-trailer" title="Watch Trailer">▶ Trailer</a>
+                           class="nf-btn-trailer" title="Watch Official Trailer">▶ Trailer</a>
                         <a href="{watch_url}" target="_blank" rel="noopener noreferrer"
                            class="nf-btn-watch" title="Watch on {safe_prov}">🍿 Watch</a>
                     </div>
@@ -991,26 +960,30 @@ def render_nf_row(title: str, movies_list, key_prefix: str, show_match: bool = F
     """)
 
 # -------------------------------------------------
-# TABS
+# TABS (Mobile-optimized Netflix Navigation)
 # -------------------------------------------------
 
-tab_pick, tab_search, tab_reco, tab_discover, tab_compare, tab_lists, tab_dash = st.tabs(
+tab_home, tab_search, tab_reco, tab_discover, tab_compare, tab_lists, tab_dash = st.tabs(
     [
-        "🌟 Today's Pick",
-        "🔍 Search & Details",
-        "🎯 Recommendations",
+        "🏠 Home",
+        "🔍 Search",
+        "🎯 AI Matches",
         "🔥 Discover",
-        "⚖️ Compare",
+        "⚔️ Compare",
         "📋 My Lists",
-        "📊 Dashboard",
+        "📊 Stats",
     ]
 )
 
-# ---------------- TODAY'S PICK ----------------
-with tab_pick:
-    if st.button("🎲 Surprise Me", use_container_width=True, key="surprise_main"):
-        st.session_state.random_movie = movies.sample(1).iloc[0]
-        st.rerun()
+# ---------------- HOME / FEATURED ----------------
+with tab_home:
+    hero_top_col1, hero_top_col2 = st.columns([3, 1])
+    with hero_top_col1:
+        st.markdown("<div style='font-size:12px; font-weight:700; color:#E50914; letter-spacing:1px; text-transform:uppercase; padding-top:6px;'>✨ Featured Spotlight</div>", unsafe_allow_html=True)
+    with hero_top_col2:
+        if st.button("🎲 Surprise Me", use_container_width=True, key="surprise_main"):
+            st.session_state.random_movie = movies.sample(1).iloc[0]
+            st.rerun()
 
     random_movie = st.session_state.random_movie
     poster, rating, release, overview, genres = fetch_movie(random_movie["movie_id"], title=random_movie["title"])
@@ -1019,22 +992,23 @@ with tab_pick:
         random_movie["movie_id"], random_movie["title"]
     )
     genre_first = genres.split(",")[0].strip() if genres and genres != "Unknown" else "Movie"
-    short_overview = overview[:200] + "…" if len(overview) > 200 else overview
+    short_overview = overview[:220] + "…" if len(overview) > 220 else overview
     pick_fallback = make_fallback_poster_svg(random_movie["title"])
 
-    # Netflix-style full hero for Today's Pick
+    # Single Netflix Billboard Hero on Home
     st.html(f"""
     <div class="nf-hero" style="background-image:
-        linear-gradient(to right, rgba(20,20,20,0.97) 0%, rgba(20,20,20,0.72) 42%, rgba(20,20,20,0.08) 70%, transparent 100%),
-        linear-gradient(to top, rgba(20,20,20,0.92) 0%, transparent 40%),
+        linear-gradient(to right, rgba(20,20,20,0.98) 0%, rgba(20,20,20,0.72) 42%, rgba(20,20,20,0.08) 70%, transparent 100%),
+        linear-gradient(to top, rgba(20,20,20,0.95) 0%, transparent 40%),
         url('{poster}');">
         <div class="nf-hero-content">
-            <div class="nf-hero-logo">🌟 TODAY'S PICK</div>
+            <div class="nf-hero-logo">🎬 CINEVERSE SPOTLIGHT</div>
             <h1 class="nf-hero-title">{esc(random_movie["title"])}</h1>
             <div class="nf-hero-meta">
                 <span class="nf-hero-rating">⭐ {rating}</span>
                 <span class="nf-hero-year">{year}</span>
                 <span class="nf-hero-genre">{genre_first}</span>
+                <span class="nf-hero-catalog">🍿 {len(movies):,} Films</span>
             </div>
             <p class="nf-hero-overview">{esc(short_overview)}</p>
             <div class="nf-hero-btns">
@@ -1045,18 +1019,39 @@ with tab_pick:
     </div>
     """)
 
-    # Favourite + trailer below
-    col_fav, col_trailer = st.columns([1, 3])
+    # Actions below hero
+    col_fav, col_trailer = st.columns([1, 2])
     with col_fav:
-        list_button(random_movie["title"], "favorites", "Add to Favorites", "❤️", key="fav_pick")
+        list_button(random_movie["title"], "favorites", "Favorite", "❤️", key="fav_pick")
     with col_trailer:
         render_trailer_block(random_movie["movie_id"], random_movie["title"])
 
-    # "You might also like" row driven by recommendations
+    st.markdown("<div style='height: 12px;'></div>", unsafe_allow_html=True)
+
+    # 1. More Like This Spotlight
     if random_movie["title"] in movies["title"].values:
         _pick_recs = recommend(random_movie["title"], top_n=10)
         _pick_movies_list = [row for _, row in _pick_recs.iterrows()]
         render_nf_row("🎯 You Might Also Like", _pick_movies_list, "pick_reco", show_match=True)
+
+    # 2. Trending This Week
+    _home_trending = discover_movies("trending")
+    if _home_trending:
+        _t_rows = [{"movie_id": m.get("id"), "title": m.get("title") or m.get("name") or "Unknown"} for m in _home_trending]
+        render_nf_row("🔥 Trending This Week", _t_rows, "home_trending")
+
+    # 3. Top Rated Hits
+    _home_top = discover_movies("top_rated")
+    if _home_top:
+        _top_rows = [{"movie_id": m.get("id"), "title": m.get("title") or m.get("name") or "Unknown"} for m in _home_top]
+        render_nf_row("🏆 Critically Acclaimed & Top Rated", _top_rows, "home_top")
+
+    # 4. Because You Liked
+    if st.session_state.favorites:
+        _sample_fav = st.session_state.favorites[0]
+        if _sample_fav in movies["title"].values:
+            _fav_recs = recommend(_sample_fav, top_n=10)
+            render_nf_row(f"❤️ Because You Liked: {_sample_fav}", [row for _, row in _fav_recs.iterrows()], "home_fav_recs")
 
 # ---------------- SEARCH & DETAILS ----------------
 with tab_search:
@@ -1114,9 +1109,9 @@ with tab_search:
 
     colA, colB, colC = st.columns(3)
     with colA:
-        list_button(selected["title"], "favorites", "❤️ Favorite", "❤️", key="fav_detail")
+        list_button(selected["title"], "favorites", "Favorite", "❤️", key="fav_detail")
     with colB:
-        list_button(selected["title"], "watchlist", "📋 Watchlist", "📋", key="watch_detail")
+        list_button(selected["title"], "watchlist", "Watchlist", "📋", key="watch_detail")
     with colC:
         st.markdown("### ⭐ Your Rating")
         rate_movie(selected["title"], key="rate_detail")

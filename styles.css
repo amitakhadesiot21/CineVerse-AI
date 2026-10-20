@@ -382,28 +382,23 @@ section[data-testid="stSidebar"] + div .block-container {
 .nf-card {
   position: relative;
   flex: 0 0 auto;
-  /* Desktop: ~5 visible */
-  width: calc((100% - 4% * 2 - 6px * 4) / 5);
-  min-width: 150px;
-  max-width: 240px;
+  width: 165px;
+  min-width: 165px;
+  max-width: 180px;
   border-radius: var(--card-radius);
   scroll-snap-align: start;
   overflow: visible;
   cursor: pointer;
-  transition: transform 0.35s var(--ease-spring), z-index 0s 0.35s;
+  transition: transform 0.28s ease, box-shadow 0.28s ease;
   z-index: 1;
 }
 
-/* Scale on hover — Netflix 1.2x expansion */
+/* Subtle elevation on hover — NEVER scales outside bounds */
 .nf-card:hover {
-  transform: scale(1.22);
-  z-index: 100;
-  transition: transform 0.35s var(--ease-spring), z-index 0s 0s;
+  transform: translateY(-5px);
+  box-shadow: 0 10px 24px rgba(229, 9, 20, 0.4);
+  z-index: 5;
 }
-
-/* Prevent clipping by overflow:hidden on parent during scale */
-.nf-card:first-child:hover { transform-origin: left center; }
-.nf-card:last-child:hover  { transform-origin: right center; }
 
 .nf-card-inner {
   position: relative;
@@ -422,106 +417,102 @@ section[data-testid="stSidebar"] + div .block-container {
   object-fit: cover;
   display: block;
   border-radius: var(--card-radius);
-  transition: filter 0.35s ease;
 }
 
-/* Hover overlay info panel */
-.nf-card-info {
+/* Bottom gradient overlay: ALWAYS visible so buttons NEVER disappear */
+.nf-card-overlay {
   position: absolute;
   bottom: 0;
   left: 0;
   right: 0;
-  padding: 12px 10px 10px;
-  background: linear-gradient(0deg, rgba(0,0,0,0.92) 0%, rgba(0,0,0,0.5) 70%, transparent 100%);
-  opacity: 0;
-  transform: translateY(6px);
-  transition: opacity 0.3s ease, transform 0.3s ease;
-  border-radius: 0 0 var(--card-radius) var(--card-radius);
+  padding: 30px 8px 8px;
+  background: linear-gradient(180deg, transparent 0%, rgba(10, 12, 16, 0.82) 35%, rgba(10, 12, 16, 0.98) 100%);
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-end;
+  z-index: 4;
 }
 
-.nf-card:hover .nf-card-info {
-  opacity: 1;
-  transform: translateY(0);
-}
-
-.nf-card-info-title {
+.nf-card-title {
   font-family: 'Inter', sans-serif;
-  font-size: 0.72rem;
+  font-size: 11.5px;
   font-weight: 700;
-  color: var(--text-primary);
+  color: #FFFFFF;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
-  margin-bottom: 4px;
+  margin-bottom: 2px;
 }
 
-.nf-card-info-meta {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 4px;
-  margin-bottom: 6px;
-}
-
-.nf-card-info-meta .nf-chip {
-  font-size: 0.62rem;
-  padding: 1px 6px;
-  border-radius: 2px;
-  background: rgba(255,255,255,0.12);
-  color: var(--text-secondary);
+.nf-card-meta {
+  font-size: 9.5px;
+  color: #BCBCBC;
   white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  margin-bottom: 6px;
+  display: flex;
+  align-items: center;
+  gap: 4px;
 }
 
-.nf-card-info-meta .nf-chip.rating {
-  background: var(--nf-red);
-  color: #fff;
+.nf-chip.match {
+  background: rgba(255, 201, 74, 0.2);
+  color: #FFC94A;
   font-weight: 700;
+  padding: 1px 4px;
+  border-radius: 3px;
+  font-size: 9px;
 }
 
-/* Card action buttons */
+/* Card action buttons — always fixed & never clipped */
 .nf-card-actions {
   display: flex;
   gap: 5px;
-  margin-top: 4px;
+  width: 100%;
 }
 
-.nf-card-actions .nf-card-btn {
+.nf-btn-trailer,
+.nf-btn-watch {
   flex: 1;
+  height: 27px;
+  min-height: 27px;
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  gap: 3px;
-  padding: 5px 4px;
-  border-radius: 3px;
+  border-radius: 4px;
   font-family: 'Inter', sans-serif;
-  font-size: 0.62rem;
+  font-size: 10.5px;
   font-weight: 700;
   text-decoration: none !important;
   cursor: pointer;
-  transition: all 0.2s ease;
-  border: none;
-  min-height: 28px;
   white-space: nowrap;
+  padding: 0 4px;
+  transition: all 0.2s ease;
 }
 
-.nf-card-actions .nf-btn-trailer {
-  background: rgba(255,255,255,0.15);
-  color: var(--text-primary) !important;
-  border: 1px solid rgba(255,255,255,0.25);
+.nf-btn-trailer {
+  background: rgba(255, 255, 255, 0.2);
+  color: #FFFFFF !important;
+  border: 1px solid rgba(255, 255, 255, 0.3);
   backdrop-filter: blur(6px);
 }
 
-.nf-card-actions .nf-btn-trailer:hover {
-  background: rgba(255,255,255,0.25);
+.nf-btn-trailer:hover {
+  background: rgba(255, 255, 255, 0.35);
+  border-color: #FFC94A;
+  color: #FFC94A !important;
 }
 
-.nf-card-actions .nf-btn-watch {
-  background: var(--nf-red);
-  color: #fff !important;
+.nf-btn-watch {
+  background: #E50914;
+  color: #FFFFFF !important;
+  border: none;
 }
 
-.nf-card-actions .nf-btn-watch:hover {
-  background: var(--nf-red-hover);
-  box-shadow: 0 4px 12px var(--nf-red-glow);
+.nf-btn-watch:hover {
+  background: #FF3B4E;
+  box-shadow: 0 2px 10px rgba(229, 9, 20, 0.6);
 }
 
 /* ─── NETFLIX NAVIGATION TABS ───────────────────────────── */
@@ -1766,14 +1757,15 @@ div[data-testid="stDataFrame"] {
   .hero { padding: 32px 18px; }
   .hero h1 { font-size: clamp(32px, 9vw, 48px); }
 
-  /* Carousel: 2.5 cards visible on mobile */
+  /* Carousel: 2.5 cards visible on tablet/mobile */
   .nf-card {
-    width: calc(100vw / 2.5 - 4%);
-    min-width: 120px;
+    width: 145px;
+    min-width: 145px;
+    max-width: 160px;
   }
 
-  /* Poster grid — 2.5 per row */
-  .nf-row-scroll { gap: 4px; padding: 10px 4% 16px; }
+  /* Poster grid padding */
+  .nf-row-scroll { gap: 8px; padding: 10px 4% 16px; }
 
   /* Dashboard stat grid */
   .dash-stat-row { grid-template-columns: repeat(2, 1fr); }
@@ -1781,14 +1773,24 @@ div[data-testid="stDataFrame"] {
   /* Buttons full width on small screens */
   .stButton > button { width: 100%; }
 
-  /* Tabs responsive */
+  /* Tabs responsive — smooth horizontal scroll without wrapping */
   .stTabs [data-baseweb="tab-list"] {
+    display: flex !important;
+    flex-wrap: nowrap !important;
+    overflow-x: auto !important;
     padding: 0 0.5rem !important;
+    scrollbar-width: none !important;
+    -webkit-overflow-scrolling: touch !important;
+  }
+  .stTabs [data-baseweb="tab-list"]::-webkit-scrollbar {
+    display: none !important;
   }
 
   .stTabs [data-baseweb="tab"] {
-    padding: 12px 12px !important;
-    font-size: 0.8rem !important;
+    flex-shrink: 0 !important;
+    white-space: nowrap !important;
+    padding: 10px 14px !important;
+    font-size: 0.85rem !important;
   }
 
   /* Cast chips */
@@ -1804,79 +1806,73 @@ div[data-testid="stDataFrame"] {
 
 /* ── 480px mobile ── */
 @media (max-width: 480px) {
-  /* Max 3 cards visible on smallest mobile */
+  /* Exactly ~2.5 cards visible on phones for natural swipe */
   .nf-card {
-    width: calc(100vw / 3 - 3%);
-    min-width: 100px;
+    width: 135px;
+    min-width: 135px;
+    max-width: 145px;
   }
 
-  .nf-hero-title { font-size: clamp(1.5rem, 8vw, 2.2rem); }
+  .nf-hero {
+    height: auto !important;
+    min-height: 260px;
+  }
 
-  .nf-hero-meta { font-size: 0.78rem; gap: 6px; }
+  .nf-hero-content {
+    padding: 12px 14px 16px 14px !important;
+  }
+
+  .nf-hero-title { font-size: clamp(1.4rem, 7vw, 2rem) !important; }
+
+  .nf-hero-meta { font-size: 0.75rem; gap: 6px; }
 
   .nf-hero-btns {
-    flex-direction: column;
+    flex-direction: row !important;
     gap: 8px;
   }
 
   .nf-hero-btns .nf-btn-play,
   .nf-hero-btns .nf-btn-info {
-    width: 100%;
+    flex: 1;
     justify-content: center;
     font-size: 0.85rem;
-    padding: 11px 16px;
+    padding: 9px 12px !important;
+    min-height: 38px !important;
   }
 
-  .hero { padding: 26px 14px; }
-  .hero h1 { font-size: clamp(28px, 10vw, 40px); }
-  .hero-stats { gap: 8px; }
-  .hero-pill { padding: 6px 12px; font-size: 12px; }
+  .hero { padding: 22px 12px; }
+  .hero h1 { font-size: clamp(26px, 9vw, 36px); }
+  .hero-stats { gap: 6px; }
+  .hero-pill { padding: 5px 10px; font-size: 11px; }
 
   /* Tab text smaller */
   .stTabs [data-baseweb="tab"] {
-    padding: 10px 8px !important;
-    font-size: 0.75rem !important;
+    padding: 8px 10px !important;
+    font-size: 0.78rem !important;
   }
 
-  /* Dashboard 1 col */
+  /* Dashboard 2 col */
   .dash-stat-row { grid-template-columns: repeat(2, 1fr); gap: 8px; }
-  .dash-stat-value { font-size: 26px; }
+  .dash-stat-value { font-size: 24px; }
 
   /* Section title smaller */
-  .nf-section-title { font-size: 1rem; padding: 0 3%; }
-  .nf-row-title { font-size: 1rem; padding: 0 3%; }
-  .nf-row-scroll { padding: 8px 3% 14px; }
+  .nf-section-title { font-size: 1.1rem; padding: 0 3%; }
+  .nf-row-title { font-size: 1.1rem; padding: 0 3%; }
+  .nf-row-scroll { padding: 8px 3% 14px; gap: 8px; }
 
   /* Compare poster */
   .compare-poster {
     max-width: 130px;
     height: 180px;
   }
-
-  /* Touch targets */
-  .card-btn,
-  .btn-trailer,
-  .btn-watch {
-    min-height: 44px;
-    padding: 10px 12px;
-    font-size: 12px;
-    border-radius: 4px;
-  }
 }
 
-/* ── Touch device: always show card overlay ── */
+/* ── Touch device: card overlay and buttons stay rock-solid ── */
 @media (hover: none) and (pointer: coarse) {
   .poster-card .card-overlay  { opacity: 1; }
-  .nf-card-info               { opacity: 1; transform: translateY(0); }
+  .nf-card-overlay            { opacity: 1; transform: translateY(0); }
   .nf-card                    { transform: none !important; }
   .nf-card:hover              { transform: none !important; }
-
-  /* Tap-friendly targets */
-  .nf-tab, .card-btn, .btn-trailer, .btn-watch,
-  .nf-card-actions .nf-card-btn {
-    min-height: 44px;
-    min-width: 44px;
-  }
 }
 
 /* ── Large screens — ensure 5 cards ── */
