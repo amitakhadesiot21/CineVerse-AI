@@ -15,9 +15,18 @@ from requests.adapters import HTTPAdapter
 # PAGE CONFIG (must be first Streamlit call)
 # -------------------------------------------------
 
+from PIL import Image
+
+_icon_candidates = ["static/favicon.png", "favicon.png"]
+_icon_path = next((p for p in _icon_candidates if os.path.exists(p)), None)
+try:
+    _app_icon = Image.open(_icon_path) if _icon_path else "🎬"
+except Exception:
+    _app_icon = "🎬"
+
 st.set_page_config(
     page_title="CineVerse AI — Cinematic Discovery",
-    page_icon="🎬",
+    page_icon=_app_icon,
     layout="wide",
     initial_sidebar_state="collapsed"
 )
@@ -33,15 +42,50 @@ def load_css():
 
 load_css()
 
-# PWA + mobile meta tags & self-contained install manifest
-st.markdown("""
+# PWA + mobile meta tags & install manifest
+_manifest_url = "app/static/manifest.json"
+_icon_192 = "app/static/icon-192.png"
+_icon_512 = "app/static/icon-512.png"
+_favicon = "app/static/favicon.png"
+
+st.markdown(f"""
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
 <meta name="theme-color" content="#141414">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="CineVerse AI">
+<meta name="application-name" content="CineVerse AI">
 <meta name="mobile-web-app-capable" content="yes">
-<link rel="manifest" href="data:application/json;base64,eyJuYW1lIjogIkNpbmVWZXJzZSBBSSIsICJzaG9ydF9uYW1lIjogIkNpbmVWZXJzZSIsICJkZXNjcmlwdGlvbiI6ICJBSS1Qb3dlcmVkIE1vdmllIERpc2NvdmVyeSAmIFJlY29tbWVuZGF0aW9uIFBsYXRmb3JtIiwgInN0YXJ0X3VybCI6ICIvIiwgInNjb3BlIjogIi8iLCAiZGlzcGxheSI6ICJzdGFuZGFsb25lIiwgIm9yaWVudGF0aW9uIjogInBvcnRyYWl0LXByaW1hcnkiLCAiYmFja2dyb3VuZF9jb2xvciI6ICIjMTQxNDE0IiwgInRoZW1lX2NvbG9yIjogIiNFNTA5MTQiLCAiaWNvbnMiOiBbeyJzcmMiOiAiZGF0YTppbWFnZS9wbmc7YmFzZTY0LGlWQk9SdzBLR2dvQUFBQU5TVWhFVWdBQUFNQUFBQURBQ0FZQUFBQlMzR3dIQUFBSlNVbEVRVlI0bk8yZHZYYmJSaENGUVI1TGpSc1ZlZ2x2d3k1TitqUitYamZwMDZSVHMzNE5OVzZrZ2ptVUF4dWlTUnJZbloyL2U3OUtQajZXdWNEOVptWkJFTnc5UGo0ZUowSkEyVnUvQUVJc29RQUVHZ3BBb0tFQUJCb0tRS0NoQUFRYUNrQ2dvUUFFbWcvV0x5QXpUOSttTDFLLzYvQngraXoxdThoUGRud24yRS9JVzZFYzdWQ0FnWUV2OTY5aVZidSszSzMrZnluRWVpaUFRT0FsZ3o1Q0RBcHhIUXF3TWZTV1laZVFnaks4aHdMOEp2UVJBdDhxeElFYmF3cHdLZmdaUXI5RmhnT3dDSkFkQUMzMDE2aVVBVXNBQnY4eUZWZ0VDQUhPZzQ5WTdWdGxPQ1FYSWJVQURINDdGVVNFbEFKNENuNTl1ZXYrSGVYK2RiS2lKaGNoblFETDhHc0ZYeUxrM3VXb0N4RXlTWkJHQU0ycWJ4bDRTeUZxd200UVhnQ3Q0SHNPdmJZTU5aRUlvUVVZUGU1RURMMm1ERFhCV0JSV2dGSGh6eFI2RFJscWNBbkNDYkExK01manorWHRkanZvNEo5VEtFSXNBYmFFZnhuOGM1WWlJQVovbEFnMVlEY0lJMEJQNWI4a0FJUC9LeElpUkpQQXZRQXRzLzZ0OE05OGZiM3ZmR1Y1S1VBaXVINHFoTVdiV21SNjY0NjlIWEo1dmp4OGJqcWNBQXgvZkJGS0FBbjJHY04vNjJyUENZNC8yNmlKSmRobnJQemM0UHJxQnNXeEJLNDJ3ZlBCNlpuM3owL1NwN3VYSHorejh0dHZrdXYvbTJNdkcyTTNBb3dJUHhsSFNTS0JDd0Y2dzgvZ3h4T2hPcEhBZkEvQThNZW1kdTRMclBjRXBnTDBMcDZWM3dlMWMvUzBsR0FmOVdvUHcrK0wyaUNCaDZ0REpnSXcvRG1wQVNVd0hZRlkrZk5ST3lWSUwwRFBwcGRqVDM0Sm5wUzdnS29BREQveEpvR2FBRDJMWXVYSHU1MzZTVWtDOVJGbzYrakQ4R09GdnlqdkIvYWVSeCtHSC9PamxVVnhGQm91QU1PUFFSRis3SXFXQkVNRmFIM3hyUHl4S0lNZnp6aFNBcFVSYU12b3cvREhvZ3dNdjhaK1lOamRvQng5K29QaXZSZ1U1UWZ6anJoejFOVTN4WHMvNFFhYlFiZkhxQmcrc3QxOUIyaXAvbDVPYk1EbjkwT3N0dzdxQW5zUEc1YW80VDhGd2JvU2FyK0dZcnhlNlEzeHNCRW82M044ckFPdzVuV05LaWpGY08yblBOMzZBbkFYSTFEbTBjZHI4TFdPYlhHeWZ1bFJ5UFIyYUlZLzdtWThDM3RQVDNYd2hvY1ozM29OeGRuNnBkOGhOdXNBM3F1L3R4TnZzWjZTN0JnTUV5QlQ5YzlROVNYV1Zod2ZBOGt1WU5JQnZGWi96eWRkYzUwRjVEaUlDSkNsK2lPZDlGdnJMVUdPZzFRWFVPOEFIcXQvbEpNK2V0MEY4RGlZUHhuT0dzU1RmbW45QmZRNDdEWEhIMi9WSC9Xa1p6a09SV0FNZ3UwQVVVODZrV1dQV1AwWi9qeVV6aTRBMXdFWWZxSXVnSmZxei9BVEVRR3lYUHNuT2VnWmcyQkdJTVRxLy96M245WXZ3VDE3aFBFSE1meGtrQUFjZjJKVmY1UXVVQnJIb1BRakVLcy9NUlBBZXZ4aCtNbUUzZ0VRUVJsNzFBV0lOUCt6K3VNSlVScjJBZnVzNHc4aGErQUlsQXlVYWk5RlNnRTQvaEJ4QWF5LzBwNzBnZFlabmxibWRYTUhXTE1CdHB6L1dmMnhLUnN2MEtRY2dWQkJxL0lTVUFBQ0RRVUFnaDBpdVFESTh6L0QzVVlxQVFnWklrQ2tXeUFJS1J0dWlSRHZBTHdGd3ZmNHcxSHBQUnlCQ0RTdXZpYTFCN1FOY0U4bFgvN2JoNy8rbVpCSkl3QUNJOGFYWjNBWlJBVTRIby9UcDd1WHQ1Ky92dDVML21wWU5HZjJaMEFaUGtnRi94eUtZQno4UHhZWFFQN2Rmdkh1R1VRR2prQVpxLzB5L1BPZkd5UkFrT0hEaU9wLzNnazREaW1PT09maEY1SWdxd3pzQUFaa3VSYi9uRUFHQ21EQU1peVJaWGdJR25wUkFYYTczYzB4aU9PUHNneW5NZWZTR0NRdy9tUUovUkoyZ0l3eW5FdlFHZjZIWktFWEYrRFVCVTRzT3dFci95UVN1bVlSR0hyOURuQVNnVGZEeGQwdlBDU3U5TmZnQ0FRdXd3Tmc2Rk1LY09vOFNEZkU5Y2lBSHZvbHZCMmFRQ011QUZJVjlzS1dpczdxM3lEQTRlUDBkaDJ0dnR6eDZYREVQWE5PNTl6ZWdpTVFnU2FWQU1pWFlEbmF0SkZLQUhJYlN2SXJGSUJBUXdFU3dRcXZJTUNhSzBHV2wwS1I5d0ZrMm55bGNyVUFheTRwRWIrZ2RZZkR5cnltSElIWUJjaGFVZ3FBREZxbGR5c0FiNGtnNlFTSWRFc0V4eUM4cmxBMzNBSXh3eEVvSVNpQmwyQ29BTlpqRUxzQW1kQTdBQ1Vnb2dKRTJnY2dNNDlCS09OUWJaai9WVHFBOVJoMGdsMkF3STVBeUJLZ1ZIOTFBVGdHa1F6amoxb0g4REFHb1hZQmNodVlFV2lHRWhBUkFiYU9RVjY2d0FsS2tJZmFNZjVBZG9BWlNrQzZCWWpjQlU1UWd0akhvYmY2UTNlQTZDZGZldjBWOURpb0MrQ3RDeUNmL0hxMmJzVGowQzFBbHZjRTBFNyt0ZlhXSU1kQll2d3hHNEU4ZG9GSUozLzBPaXZJY1JBVElFc1htRTkrMWdCc1dWdDFmQXlrcXIvcEp0aHJGNGdRQUszMTFHVEhZS2dBbWJwQXBtN1F1NGJxYlAyUzFkLzhNcWozTHVBMUJOcXZ1d1pkL3hwMmo0K1AxNy9rdDRHbmI5T2JvZVgrOVhQR0F4eEIybEhIczloL3hGVzArZy90QUpsR29Vc2poVGRwTlY1WE5WenpxRHlKQzlCaXAzVmxhY1dEQ05xdm9ScXZWL29SbmVJakVNb29aQ1cwbDJOVUZJdldpTkhINWRla25nNnFseFBjdzZVMXRBVEc4N0dvU2I2V2RsZ0hRTzhDS0pUQkVveXMvbXFYUWJkc1lESlVGU1RxMkUzMzhBc3BRd1ZvdFpZU3hLSU83dG9qdjV0aWVBZG9mWWVZRW1CTFVBZVBQcW9qRUNYQW9NcTk4NndTZnBOYklkZ0pjbE03SmRCK0ExVk5nQjZiT1E3aGRZS0QwbmZTcVhhQW5qdEdLVUYrcXVMb1l6WUNVWUw4bExZMy9kVERiMzQ3TkR0QlBrcEgrQzB3RVdCcE9TWElRK2tNdjhWM1VadDFBRXFRaXhJdy9PWWpVTytpdVRIMlFlbThmY1VxL0M2ZUROZjdXV0pLWUV0cERML1ZwbGYxYnREUmQ0NnV2Zjc4NmU3bHg4OWZYKzliZnowUktqeGV3dTlLZ0JFU0xJTi9Ea1ZvSjB2NDNRbXdsS0JIaEZrQ0N1QnY1UEVVZnBjQ1NFbHdQUDUrV2V3Q3VsWGZXL2hkYklKSFhDSWxzcFNrNFhjcndBbEs0Q1A0SlhINFhRdlFLOEZ1dDd2NTl4eC9ydE1iL0NqaGQ3c0hrTm9YM05vSFVJQmZrWGhQSlVyd3d3blFzemxlaW5EZUdmZ1Vpa25zemNSbzRROG5nTlFWb2tzZ2lsQUVuOEFSTWZ3aEJaaWhDTzB3K0FrRUdDbEJ4cTR3NHA2cEdyVHFweEhnWElKUklrU1ZZZFNOZ3ZYc2lselU4S2NRUUZzRTd6SU1makR2bHl6QlR5ZUExbGprVFFpdDI4RnJnbkVIUWdEdGJxQWhoK1ZuSG1yQ3FwOWVBSThpUktNbUR6NkVBRE1VWVQwVkpQaFFBbHdUNFFTN3duVHhQcXZzd1ljVVlJWWlmS2NDQng5YUFHUVpHUHIzd0F0d1M0UXNNbHk3bGZ3QVZ1MHZRUUUyeUJCRmlGdWZuV0RvMzBNQk9tUnc4ajdEYjE4ZlEzOGRDakJBaUVHM2E2LytmeG40OVZBQVJTRkd3Y0MzUXdHQ3lNR1FqNEVDRUdoY1B4V0NrTkZRQUFJTkJTRFFVQUFDRFFVZzBGQUFBZzBGSUJNeS93SHBJMmp2VWJ4Z1ZRQUFBQUJKUlU1RXJrSmdnZz09IiwgInNpemVzIjogIjE5MngxOTIiLCAidHlwZSI6ICJpbWFnZS9wbmciLCAicHVycG9zZSI6ICJhbnkgbWFza2FibGUifV19">
+<link rel="apple-touch-icon" href="{_icon_192}">
+<link rel="apple-touch-icon" sizes="192x192" href="{_icon_192}">
+<link rel="apple-touch-icon" sizes="512x512" href="{_icon_512}">
+<link rel="icon" type="image/png" sizes="192x192" href="{_icon_192}">
+<link rel="icon" type="image/png" sizes="512x512" href="{_icon_512}">
+<link rel="icon" type="image/png" sizes="64x64" href="{_favicon}">
+<link rel="manifest" href="{_manifest_url}">
+<script>
+  (function() {{
+    try {{
+      function injectTag(rel, href, type, sizes) {{
+        var sel = 'link[rel="' + rel + '"]' + (sizes ? '[sizes="' + sizes + '"]' : '');
+        var el = document.querySelector(sel);
+        if (!el) {{
+          el = document.createElement('link');
+          el.rel = rel;
+          if (type) el.type = type;
+          if (sizes) el.sizes = sizes;
+          document.head.appendChild(el);
+        }}
+        el.href = href;
+      }}
+      injectTag('manifest', '{_manifest_url}');
+      injectTag('apple-touch-icon', '{_icon_192}', 'image/png', '192x192');
+      injectTag('apple-touch-icon', '{_icon_512}', 'image/png', '512x512');
+      injectTag('icon', '{_icon_192}', 'image/png', '192x192');
+      injectTag('icon', '{_icon_512}', 'image/png', '512x512');
+    }} catch (e) {{}}
+  }})();
+</script>
 """, unsafe_allow_html=True)
 
 

@@ -9,16 +9,22 @@ __pycache__/
 *.py[cod]
 *$py.class
 
-# Streamlit local settings & secrets
-.streamlit/
+# Local user data
 user_data.json
 
 # Local tools & executables
 cloudflared.exe
 mingit/
 *.exe
-
-# Local scratch / images
-*.png
-*.svg
 *.log
+qr_mobile.png
+
+# Allow PWA icons, manifest and server configuration
+!.streamlit/config.toml
+!static/
+!static/**
+!favicon.png
+!icon-192.png
+!icon-512.png
+!manifest.json
+.streamlit/secrets.toml
