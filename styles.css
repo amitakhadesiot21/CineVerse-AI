@@ -2378,3 +2378,471 @@ div[data-testid="stDataFrame"] {
   0%, 100% { opacity: 1; transform: scale(1); }
   50% { opacity: 0.4; transform: scale(0.8); }
 }
+
+/* ─── TAB CONTENT SWITCHING TRANSITION ──────────────────── */
+.stTabs [data-baseweb="tab-panel"] {
+  animation: tabFadeSlideUp 0.35s cubic-bezier(0.16, 1, 0.3, 1) both !important;
+}
+
+@keyframes tabFadeSlideUp {
+  0% {
+    opacity: 0;
+    transform: translateY(12px) scale(0.995);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+/* ─── AI MATCHMAKER: CROWN JEWEL SHOWCASE ──────────────── */
+.crown-card {
+  position: relative;
+  background: linear-gradient(135deg, rgba(32, 20, 24, 0.95) 0%, rgba(18, 18, 22, 0.98) 100%);
+  border: 1px solid rgba(229, 9, 20, 0.4);
+  border-radius: 14px;
+  padding: 20px;
+  margin: 12px 0 20px;
+  box-shadow: 0 12px 36px rgba(0, 0, 0, 0.7), 0 0 24px rgba(229, 9, 20, 0.15);
+  display: flex;
+  gap: 20px;
+  align-items: center;
+  animation: fadeUp 0.5s ease both;
+}
+
+@media (max-width: 680px) {
+  .crown-card {
+    flex-direction: column;
+    text-align: center;
+    padding: 16px;
+    gap: 14px;
+  }
+}
+
+.crown-poster-wrapper {
+  position: relative;
+  flex-shrink: 0;
+}
+
+.crown-poster {
+  width: 140px;
+  height: 210px;
+  object-fit: cover;
+  border-radius: 10px;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.6);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.crown-badge-floating {
+  position: absolute;
+  top: -8px;
+  left: -8px;
+  background: linear-gradient(135deg, #FFC94A, #FFA726);
+  color: #141414;
+  font-family: 'Inter', sans-serif;
+  font-size: 11px;
+  font-weight: 800;
+  padding: 4px 10px;
+  border-radius: 12px;
+  box-shadow: 0 4px 12px rgba(255, 201, 74, 0.4);
+}
+
+.crown-info {
+  flex: 1;
+  min-width: 0;
+}
+
+.crown-tag {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 11px;
+  font-weight: 800;
+  color: #E50914;
+  letter-spacing: 1.5px;
+  text-transform: uppercase;
+  margin-bottom: 6px;
+}
+
+.crown-title {
+  font-family: 'Bebas Neue', sans-serif;
+  font-size: clamp(24px, 4vw, 36px);
+  color: #FFFFFF;
+  line-height: 1.1;
+  margin-bottom: 6px;
+  letter-spacing: 1px;
+}
+
+.crown-meta {
+  font-size: 13px;
+  color: #BCBCBC;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  align-items: center;
+  margin-bottom: 12px;
+}
+
+.crown-ai-reason {
+  background: rgba(255, 255, 255, 0.04);
+  border-left: 3px solid #E50914;
+  padding: 10px 14px;
+  border-radius: 0 8px 8px 0;
+  font-size: 13px;
+  color: #E0E0E0;
+  line-height: 1.45;
+  margin-bottom: 14px;
+}
+
+.crown-radar-row {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 10px;
+  margin-bottom: 16px;
+}
+
+.crown-radar-item {
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  border-radius: 8px;
+  padding: 8px 10px;
+  text-align: center;
+}
+
+.crown-radar-label {
+  font-size: 10px;
+  color: #9E9E9E;
+  text-transform: uppercase;
+  margin-bottom: 4px;
+}
+
+.crown-radar-val {
+  font-family: 'Inter', sans-serif;
+  font-size: 15px;
+  font-weight: 800;
+  color: #FFC94A;
+}
+
+.crown-actions {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+/* 2x3 Matrix Grid */
+.matrix-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+  gap: 14px;
+  margin: 16px 0;
+}
+
+.matrix-grid .nf-card {
+  width: 100% !important;
+  min-width: 0 !important;
+  max-width: 100% !important;
+}
+
+@media (max-width: 480px) {
+  .matrix-grid {
+    grid-template-columns: repeat(2, 1fr);
+    gap: 10px;
+  }
+}
+
+/* ─── DISCOVER: BENTO CATEGORY TILES ────────────────────── */
+.bento-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 12px;
+  margin: 16px 0 24px;
+}
+
+@media (max-width: 768px) {
+  .bento-grid {
+    grid-template-columns: repeat(2, 1fr);
+    gap: 10px;
+  }
+}
+
+.bento-tile {
+  position: relative;
+  border-radius: 12px;
+  padding: 16px 14px;
+  min-height: 90px;
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-end;
+  overflow: hidden;
+  cursor: pointer;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  transition: transform 0.25s ease, box-shadow 0.25s ease, border-color 0.25s ease;
+  text-decoration: none !important;
+}
+
+.bento-tile:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.6);
+  border-color: rgba(229, 9, 20, 0.5);
+}
+
+.bento-tile.sci-fi { background: linear-gradient(135deg, rgba(16, 32, 60, 0.85), rgba(10, 15, 25, 0.95)); }
+.bento-tile.action { background: linear-gradient(135deg, rgba(60, 16, 20, 0.85), rgba(25, 10, 12, 0.95)); }
+.bento-tile.thriller { background: linear-gradient(135deg, rgba(35, 16, 50, 0.85), rgba(18, 10, 24, 0.95)); }
+.bento-tile.comedy { background: linear-gradient(135deg, rgba(55, 42, 12, 0.85), rgba(24, 18, 8, 0.95)); }
+.bento-tile.drama { background: linear-gradient(135deg, rgba(20, 45, 40, 0.85), rgba(10, 22, 20, 0.95)); }
+.bento-tile.hits { background: linear-gradient(135deg, rgba(70, 10, 15, 0.9), rgba(30, 8, 10, 0.95)); border-color: rgba(229, 9, 20, 0.4); }
+
+.bento-tile-icon { font-size: 24px; margin-bottom: 6px; }
+.bento-tile-title { font-family: 'Bebas Neue', sans-serif; font-size: 18px; color: #FFFFFF; letter-spacing: 1px; line-height: 1.1; }
+.bento-tile-sub { font-size: 10.5px; color: #BCBCBC; margin-top: 2px; }
+
+/* Top 10 Numbered Leaderboard */
+.leaderboard-list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin: 16px 0;
+}
+
+.leaderboard-item {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  border-radius: 10px;
+  padding: 8px 14px;
+  transition: background 0.2s, transform 0.2s, border-color 0.2s;
+}
+
+.leaderboard-item:hover {
+  background: rgba(255, 255, 255, 0.06);
+  border-color: rgba(229, 9, 20, 0.35);
+  transform: translateX(4px);
+}
+
+.leaderboard-rank {
+  font-family: 'Bebas Neue', sans-serif;
+  font-size: clamp(32px, 5vw, 44px);
+  font-weight: 900;
+  width: 36px;
+  text-align: center;
+  color: #FFFFFF;
+  line-height: 1;
+  flex-shrink: 0;
+}
+
+.leaderboard-item:nth-child(1) .leaderboard-rank { color: #FFC94A; text-shadow: 0 0 14px rgba(255, 201, 74, 0.5); }
+.leaderboard-item:nth-child(2) .leaderboard-rank { color: #E0E0E0; text-shadow: 0 0 10px rgba(255, 255, 255, 0.4); }
+.leaderboard-item:nth-child(3) .leaderboard-rank { color: #CD7F32; }
+
+.leaderboard-poster {
+  width: 48px;
+  height: 68px;
+  object-fit: cover;
+  border-radius: 6px;
+  flex-shrink: 0;
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.5);
+}
+
+.leaderboard-details {
+  flex: 1;
+  min-width: 0;
+}
+
+.leaderboard-title {
+  font-family: 'Inter', sans-serif;
+  font-size: 14px;
+  font-weight: 700;
+  color: #FFFFFF;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.leaderboard-meta {
+  font-size: 11.5px;
+  color: #BCBCBC;
+  margin-top: 3px;
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  flex-wrap: wrap;
+}
+
+.leaderboard-actions {
+  display: flex;
+  gap: 6px;
+  flex-shrink: 0;
+}
+
+/* ─── COMPARE: TALE OF THE TAPE ARENA ────────────────────── */
+.faceoff-arena {
+  position: relative;
+  display: grid;
+  grid-template-columns: 1fr auto 1fr;
+  align-items: center;
+  gap: 16px;
+  margin: 16px 0 24px;
+}
+
+@media (max-width: 640px) {
+  .faceoff-arena {
+    grid-template-columns: 1fr;
+    gap: 12px;
+  }
+}
+
+.faceoff-card {
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 12px;
+  padding: 16px;
+  text-align: center;
+  transition: border-color 0.25s ease, box-shadow 0.25s ease;
+}
+
+.faceoff-card.winner {
+  border-color: #FFC94A;
+  box-shadow: 0 0 24px rgba(255, 201, 74, 0.2);
+}
+
+.faceoff-vs {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 52px;
+  height: 52px;
+  background: #E50914;
+  color: #FFFFFF;
+  font-family: 'Bebas Neue', sans-serif;
+  font-size: 24px;
+  border-radius: 50%;
+  box-shadow: 0 0 20px rgba(229, 9, 20, 0.6);
+  margin: 0 auto;
+  animation: vsPulse 2s infinite ease-in-out;
+  flex-shrink: 0;
+}
+
+@keyframes vsPulse {
+  0%, 100% { transform: scale(1); box-shadow: 0 0 16px rgba(229, 9, 20, 0.5); }
+  50% { transform: scale(1.1); box-shadow: 0 0 26px rgba(229, 9, 20, 0.8); }
+}
+
+.verdict-box {
+  background: linear-gradient(135deg, rgba(255, 201, 74, 0.12) 0%, rgba(20, 20, 24, 0.95) 100%);
+  border: 1px solid rgba(255, 201, 74, 0.4);
+  border-radius: 12px;
+  padding: 16px 20px;
+  margin: 20px 0;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.5);
+}
+
+.verdict-title {
+  font-family: 'Bebas Neue', sans-serif;
+  font-size: 20px;
+  letter-spacing: 1px;
+  color: #FFC94A;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 6px;
+}
+
+.verdict-text {
+  font-size: 13.5px;
+  color: #E0E0E0;
+  line-height: 1.5;
+  margin: 0;
+}
+
+/* ─── MY LISTS: ROULETTE & POSTER WALL ──────────────────── */
+.roulette-box {
+  background: linear-gradient(135deg, rgba(229, 9, 20, 0.18) 0%, rgba(18, 18, 24, 0.95) 100%);
+  border: 1px solid rgba(229, 9, 20, 0.35);
+  border-radius: 12px;
+  padding: 16px 20px;
+  margin-bottom: 20px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  box-shadow: 0 8px 24px rgba(229, 9, 20, 0.15);
+}
+
+@media (max-width: 600px) {
+  .roulette-box {
+    flex-direction: column;
+    text-align: center;
+    gap: 12px;
+    padding: 14px;
+  }
+}
+
+.poster-wall-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(130px, 1fr));
+  gap: 12px;
+  margin: 16px 0;
+}
+
+@media (max-width: 480px) {
+  .poster-wall-grid {
+    grid-template-columns: repeat(3, 1fr);
+    gap: 8px;
+  }
+}
+
+.poster-wall-card {
+  position: relative;
+  aspect-ratio: 2 / 3;
+  border-radius: 6px;
+  overflow: hidden;
+  background: #141414;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  cursor: pointer;
+  transition: transform 0.25s ease, box-shadow 0.25s ease, border-color 0.25s ease;
+}
+
+.poster-wall-card:hover {
+  transform: translateY(-4px) scale(1.02);
+  border-color: rgba(229, 9, 20, 0.5);
+  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.7);
+  z-index: 2;
+}
+
+.poster-wall-img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+.poster-wall-overlay {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(180deg, transparent 40%, rgba(10, 10, 12, 0.95) 100%);
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-end;
+  padding: 8px 6px;
+  opacity: 1;
+}
+
+.poster-wall-title {
+  font-family: 'Inter', sans-serif;
+  font-size: 11px;
+  font-weight: 700;
+  color: #FFFFFF;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  line-height: 1.2;
+}
+
+.poster-wall-meta {
+  font-size: 9px;
+  color: #BCBCBC;
+  margin-top: 2px;
+}
