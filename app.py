@@ -850,33 +850,48 @@ with st.sidebar:
 
     st.divider()
 
+    def render_sidebar_movie_item(title_text, list_name, key_prefix):
+        matched = movies[movies["title"] == title_text]
+        m_id = matched.iloc[0]["movie_id"] if not matched.empty else None
+        poster_url, rating, release, _, _ = fetch_movie(m_id, title=title_text)
+        year = release[:4] if release and release != "Unknown" else "N/A"
+        fallback = make_fallback_poster_svg(title_text)
+
+        c_info, c_del = st.columns([5, 1])
+        with c_info:
+            st.html(f"""
+                <div class="sb-fav-card">
+                    <img src="{poster_url}" class="sb-fav-poster" alt="{esc(title_text)}" onerror="this.onerror=null;this.src='{fallback}';">
+                    <div class="sb-fav-info">
+                        <div class="sb-fav-title" title="{esc(title_text)}">{esc(title_text)}</div>
+                        <div class="sb-fav-meta">⭐ {rating} • 📅 {year}</div>
+                    </div>
+                </div>
+            """)
+        with c_del:
+            st.markdown("<div style='height: 8px;'></div>", unsafe_allow_html=True)
+            if st.button("✕", key=f"{key_prefix}_del_{title_text}"):
+                st.session_state[list_name].remove(title_text)
+                save_user_data()
+                st.rerun()
+
     with st.expander("❤️ Favorites", expanded=False):
         if not st.session_state.favorites:
             st.caption("No favorites yet.")
         else:
-            for fav_title in st.session_state.favorites[:5]:
-                f_col1, f_col2 = st.columns([4, 1])
-                f_col1.caption(f"• {fav_title}")
-                if f_col2.button("❌", key=f"sb_rm_fav_{fav_title}"):
-                    st.session_state.favorites.remove(fav_title)
-                    save_user_data()
-                    st.rerun()
-            if len(st.session_state.favorites) > 5:
-                st.caption(f"…and {len(st.session_state.favorites) - 5} more in **My Lists**.")
+            for fav_title in st.session_state.favorites[:6]:
+                render_sidebar_movie_item(fav_title, "favorites", "sb_fav")
+            if len(st.session_state.favorites) > 6:
+                st.caption(f"…and {len(st.session_state.favorites) - 6} more in **My Lists**.")
 
     with st.expander("📋 Watchlist", expanded=False):
         if not st.session_state.watchlist:
             st.caption("Watchlist is empty.")
         else:
-            for watch_title in st.session_state.watchlist[:5]:
-                w_col1, w_col2 = st.columns([4, 1])
-                w_col1.caption(f"• {watch_title}")
-                if w_col2.button("❌", key=f"sb_rm_watch_{watch_title}"):
-                    st.session_state.watchlist.remove(watch_title)
-                    save_user_data()
-                    st.rerun()
-            if len(st.session_state.watchlist) > 5:
-                st.caption(f"…and {len(st.session_state.watchlist) - 5} more in **My Lists**.")
+            for watch_title in st.session_state.watchlist[:6]:
+                render_sidebar_movie_item(watch_title, "watchlist", "sb_watch")
+            if len(st.session_state.watchlist) > 6:
+                st.caption(f"…and {len(st.session_state.watchlist) - 6} more in **My Lists**.")
 
     st.divider()
     st.markdown("""
@@ -977,9 +992,9 @@ tab_home, tab_search, tab_reco, tab_discover, tab_compare, tab_lists, tab_dash =
 
 # ---------------- HOME / FEATURED ----------------
 with tab_home:
-    hero_top_col1, hero_top_col2 = st.columns([3, 1])
+    hero_top_col1, hero_top_col2 = st.columns([2, 1])
     with hero_top_col1:
-        st.markdown("<div style='font-size:12px; font-weight:700; color:#E50914; letter-spacing:1px; text-transform:uppercase; padding-top:6px;'>✨ Featured Spotlight</div>", unsafe_allow_html=True)
+        st.markdown("<div style='font-size:13px; font-weight:700; color:#E50914; letter-spacing:1px; text-transform:uppercase; padding-top:8px;'>✨ Featured Spotlight</div>", unsafe_allow_html=True)
     with hero_top_col2:
         if st.button("🎲 Surprise Me", use_container_width=True, key="surprise_main"):
             st.session_state.random_movie = movies.sample(1).iloc[0]
@@ -1020,13 +1035,16 @@ with tab_home:
     """)
 
     # Actions below hero
-    col_fav, col_trailer = st.columns([1, 2])
+    col_fav, col_watch = st.columns(2)
     with col_fav:
         list_button(random_movie["title"], "favorites", "Favorite", "❤️", key="fav_pick")
-    with col_trailer:
+    with col_watch:
+        list_button(random_movie["title"], "watchlist", "Watchlist", "📋", key="watch_pick")
+
+    with st.expander("▶ Watch Trailer Video", expanded=False):
         render_trailer_block(random_movie["movie_id"], random_movie["title"])
 
-    st.markdown("<div style='height: 12px;'></div>", unsafe_allow_html=True)
+    st.markdown("<div style='height: 8px;'></div>", unsafe_allow_html=True)
 
     # 1. More Like This Spotlight
     if random_movie["title"] in movies["title"].values:
@@ -1107,14 +1125,14 @@ with tab_search:
             unsafe_allow_html=True,
         )
 
-    colA, colB, colC = st.columns(3)
+    colA, colB = st.columns(2)
     with colA:
         list_button(selected["title"], "favorites", "Favorite", "❤️", key="fav_detail")
     with colB:
         list_button(selected["title"], "watchlist", "Watchlist", "📋", key="watch_detail")
-    with colC:
-        st.markdown("### ⭐ Your Rating")
-        rate_movie(selected["title"], key="rate_detail")
+
+    st.markdown("<div style='height: 4px;'></div>", unsafe_allow_html=True)
+    rate_movie(selected["title"], key="rate_detail")
 
     st.divider()
     st.markdown("### 🎭 Top Cast")
