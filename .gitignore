@@ -1,0 +1,27 @@
+# Virtual environments
+.venv/
+venv/
+env/
+ENV/
+
+# Python cache
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Streamlit secrets (DO NOT COMMIT API KEYS)
+.streamlit/secrets.toml
+
+# User data & downloads
+user_data.json
+*.pkl
+*.zip
+
+# Local tools & executables
+cloudflared.exe
+mingit/
+.cloudflared/
+
+# IDE files
+.vscode/
+.idea/

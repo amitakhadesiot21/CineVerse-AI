@@ -5,7 +5,11 @@ import pickle
 import json
 import os
 import random
+import urllib.parse
 from datetime import datetime
+import base64
+from urllib3.util import Retry
+from requests.adapters import HTTPAdapter
 
 # -------------------------------------------------
 # PAGE CONFIG (must be first Streamlit call)
@@ -15,7 +19,7 @@ st.set_page_config(
     page_title="🎬 CineVerse AI",
     page_icon="🎬",
     layout="wide",
-    initial_sidebar_state="expanded"
+    initial_sidebar_state="collapsed"
 )
 
 
@@ -29,14 +33,39 @@ def load_css():
 
 load_css()
 
+# PWA + mobile meta tags
+st.markdown("""
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<meta name="theme-color" content="#141414">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="CineVerse AI">
+<meta name="mobile-web-app-capable" content="yes">
+<link rel="manifest" href="data:application/json;base64,eyJuYW1lIjoiQ2luZVZlcnNlIEFJIiwic2hvcnRfbmFtZSI6IkNpbmVWZXJzZSIsInN0YXJ0X3VybCI6Ii8iLCJkaXNwbGF5Ijoic3RhbmRhbG9uZSIsImJhY2tncm91bmRfY29sb3IiOiIjMTQxNDE0IiwidGhlbWVfY29sb3IiOiIjRTUwOTE0IiwiaWNvbnMiOlt7InNyYyI6Imh0dHBzOi8vaW1nLmlwLWFkZHIuY29tL2Vtb2ppL3R3ZW1vamkvMWY0ZmUucG5nIiwic2l6ZXMiOiIxOTJ4MTkyIiwidHlwZSI6ImltYWdlL3BuZyJ9XX0=">
+""", unsafe_allow_html=True)
+
 # -------------------------------------------------
-# TMDB API KEY
+# TMDB API KEY & PLATFORM URLS
 # -------------------------------------------------
 
 API_KEY = st.secrets["TMDB_API_KEY"]
 
 TMDB_BASE = "https://api.themoviedb.org/3"
 DATA_FILE = "user_data.json"
+
+PLATFORM_URLS = {
+    "Netflix": "https://www.netflix.com/search?q={query}",
+    "Amazon Prime Video": "https://www.primevideo.com/search/ref=atv_nb_sr?phrase={query}",
+    "Hotstar": "https://www.hotstar.com/in/explore?search_query={query}",
+    "Disney Plus": "https://www.disneyplus.com/search?q={query}",
+    "JioCinema": "https://www.jiocinema.com/search/{query}",
+    "Apple TV": "https://tv.apple.com/search?term={query}",
+    "Apple TV Plus": "https://tv.apple.com/search?term={query}",
+    "Hulu": "https://www.hulu.com/search?q={query}",
+    "Max": "https://play.max.com/search?q={query}",
+    "Sony Liv": "https://www.sonyliv.com/search?q={query}",
+    "Zee5": "https://www.zee5.com/search?q={query}",
+}
 
 # -------------------------------------------------
 # LOAD DATA (cached so the pickle only loads once per session)
@@ -113,40 +142,232 @@ if "random_movie" not in st.session_state:
 # -------------------------------------------------
 
 
+def make_fallback_poster_svg(title="Movie"):
+    safe_title = (
+        (str(title) if title else "Movie")
+        .replace("&", "&amp;")
+        .replace("<", "&lt;")
+        .replace(">", "&gt;")
+        .replace('"', '&quot;')
+    )
+    if len(safe_title) > 26:
+        display_title = safe_title[:24] + "..."
+    else:
+        display_title = safe_title
+
+    svg = f"""<svg xmlns="http://www.w3.org/2000/svg" width="300" height="450" viewBox="0 0 300 450">
+  <defs>
+    <linearGradient id="bg" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#12151C"/>
+      <stop offset="50%" stop-color="#1B1F2A"/>
+      <stop offset="100%" stop-color="#0A0C10"/>
+    </linearGradient>
+  </defs>
+  <rect width="300" height="450" fill="url(#bg)"/>
+  <rect x="10" y="10" width="280" height="430" rx="16" fill="none" stroke="rgba(255,255,255,0.08)" stroke-width="2"/>
+  <circle cx="150" cy="180" r="50" fill="#232837" stroke="rgba(229,9,20,0.4)" stroke-width="2"/>
+  <text x="150" y="195" font-size="40" text-anchor="middle" fill="#E50914" font-family="'Segoe UI', Roboto, sans-serif">&#127916;</text>
+  <text x="150" y="270" font-size="16" font-weight="bold" text-anchor="middle" fill="#F5F6FA" font-family="'Segoe UI', Roboto, sans-serif">{display_title}</text>
+  <text x="150" y="298" font-size="12" text-anchor="middle" fill="#9AA1B1" font-family="'Segoe UI', Roboto, sans-serif">No Poster Available</text>
+  <rect x="95" y="380" width="110" height="26" rx="13" fill="rgba(229,9,20,0.15)" stroke="#E50914" stroke-width="1"/>
+  <text x="150" y="397" font-size="11" font-weight="bold" text-anchor="middle" fill="#FF3B4E" font-family="'Segoe UI', Roboto, sans-serif">CINEVERSE</text>
+</svg>"""
+    return "data:image/svg+xml;base64," + base64.b64encode(svg.encode("utf-8")).decode("utf-8")
+
+
+def make_fallback_avatar_svg(name="?"):
+    safe_name = str(name).strip() if name else "?"
+    initial = (safe_name[:1] if safe_name else "?").upper()
+    svg = f"""<svg xmlns="http://www.w3.org/2000/svg" width="200" height="200" viewBox="0 0 200 200">
+  <rect width="200" height="200" fill="#1B1F2A"/>
+  <circle cx="100" cy="100" r="70" fill="#232837"/>
+  <text x="100" y="118" font-size="52" font-weight="bold" text-anchor="middle" fill="#FFC94A" font-family="'Segoe UI', Roboto, sans-serif">{initial}</text>
+</svg>"""
+    return "data:image/svg+xml;base64," + base64.b64encode(svg.encode("utf-8")).decode("utf-8")
+
+
+@st.cache_resource
+def get_tmdb_session():
+    """Shared requests.Session with connection pooling, browser User-Agent,
+    and automatic retries with backoff to prevent WinError 10054 connection resets."""
+    s = requests.Session()
+    s.headers.update({
+        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36",
+        "Accept": "application/json",
+    })
+    retries = Retry(
+        total=3,
+        backoff_factor=0.4,
+        status_forcelist=[429, 500, 502, 503, 504],
+        raise_on_status=False
+    )
+    adapter = HTTPAdapter(max_retries=retries, pool_connections=20, pool_maxsize=40)
+    s.mount("https://", adapter)
+    s.mount("http://", adapter)
+    return s
+
+
 @st.cache_data(ttl=86400, show_spinner=False)
-def fetch_movie(movie_id):
-    """Fetch poster/rating/overview/genres for a movie. Cached for 24h so
-    the same movie never triggers a duplicate API call in a session."""
+def fetch_movie(movie_id, title=None):
+    """Fetch poster/rating/overview/genres for a movie with resilient session,
+    automatic retry, title-search fallback, and inline SVG fallback."""
+    session = get_tmdb_session()
+    data = None
+
+    # 1. Try fetching by TMDB movie_id
     try:
-        url = f"https://api.themoviedb.org/3/movie/{movie_id}?api_key={API_KEY}"
-        response = requests.get(url, timeout=10)
-
-        if response.status_code != 200:
-            raise Exception("API Error")
-
-        data = response.json()
-
-        poster = (
-            "https://image.tmdb.org/t/p/w500" + data["poster_path"]
-            if data.get("poster_path")
-            else "https://via.placeholder.com/300x450?text=No+Poster"
-        )
-
-        rating = data.get("vote_average", "N/A")
-        release = data.get("release_date", "Unknown")
-        overview = data.get("overview", "No description available.")
-        genres = ", ".join(g["name"] for g in data.get("genres", [])) or "Unknown"
-
-        return poster, rating, release, overview, genres
-
+        url = f"{TMDB_BASE}/movie/{movie_id}"
+        resp = session.get(url, params={"api_key": API_KEY}, timeout=8)
+        if resp.status_code == 200:
+            data = resp.json()
     except Exception:
+        data = None
+
+    # 2. If ID lookup failed or returned no poster, fallback to searching TMDB by title
+    if (not data or not data.get("poster_path")) and title:
+        try:
+            search_url = f"{TMDB_BASE}/search/movie"
+            resp = session.get(
+                search_url,
+                params={"api_key": API_KEY, "query": str(title), "include_adult": False},
+                timeout=8,
+            )
+            if resp.status_code == 200:
+                results = resp.json().get("results", [])
+                if results:
+                    exact = [m for m in results if m.get("title", "").strip().lower() == str(title).strip().lower()]
+                    match = exact[0] if exact else results[0]
+                    if not data:
+                        data = match
+                    elif match.get("poster_path"):
+                        data["poster_path"] = match.get("poster_path")
+        except Exception:
+            pass
+
+    display_title = title or (data.get("title") if data else "Movie")
+    fallback_poster = make_fallback_poster_svg(display_title)
+
+    if not data:
         return (
-            "https://via.placeholder.com/300x450?text=No+Poster",
-            "N/A",
+            fallback_poster,
+            "NR",
             "Unknown",
-            "Unable to fetch movie details.",
+            "Movie details are currently unavailable.",
             "Unknown",
         )
+
+    poster = (
+        "https://image.tmdb.org/t/p/w500" + data["poster_path"]
+        if data.get("poster_path")
+        else fallback_poster
+    )
+
+    vote_avg = data.get("vote_average")
+    if vote_avg is not None and isinstance(vote_avg, (int, float)) and vote_avg > 0:
+        rating = round(float(vote_avg), 1)
+    else:
+        rating = "NR"
+
+    release = data.get("release_date") or "Unknown"
+    overview = data.get("overview") or "No description available."
+    genres_list = data.get("genres", [])
+    if genres_list and isinstance(genres_list[0], dict):
+        genres = ", ".join(g["name"] for g in genres_list)
+    elif "genre_ids" in data:
+        genres = "Movie"
+    else:
+        genres = "Unknown"
+
+    return poster, rating, release, overview, genres
+
+
+@st.cache_data(ttl=86400, show_spinner=False)
+def get_trailer_url(movie_id):
+    """Official YouTube trailer URL, or None if not found."""
+    try:
+        session = get_tmdb_session()
+        r = session.get(f"{TMDB_BASE}/movie/{movie_id}/videos", params={"api_key": API_KEY}, timeout=8)
+        if r.status_code != 200:
+            return None
+        vids = r.json().get("results", [])
+        trailers = [v for v in vids if v.get("type") == "Trailer" and v.get("site") == "YouTube"]
+        if not trailers:
+            return None
+        official = [v for v in trailers if v.get("official")]
+        pick = official[0] if official else trailers[0]
+        return f"https://www.youtube.com/watch?v={pick['key']}"
+    except Exception:
+        return None
+
+
+@st.cache_data(ttl=86400, show_spinner=False)
+def get_streaming_info(movie_id, title, region="IN"):
+    """
+    Fetches the primary streaming provider from TMDB for the given region (defaults to 'IN',
+    falls back to 'US') and returns (platform_name, direct_redirect_url).
+    """
+    encoded_title = urllib.parse.quote_plus(str(title))
+    try:
+        session = get_tmdb_session()
+        r = session.get(
+            f"{TMDB_BASE}/movie/{movie_id}/watch/providers",
+            params={"api_key": API_KEY},
+            timeout=8,
+        )
+        if r.status_code == 200:
+            results = r.json().get("results", {})
+            region_data = (
+                results.get(region)
+                or results.get("US")
+                or (next(iter(results.values())) if results else {})
+            )
+
+            providers = (
+                region_data.get("flatrate")
+                or region_data.get("rent")
+                or region_data.get("buy")
+                or []
+            )
+
+            if providers:
+                provider_name = providers[0].get("provider_name", "Stream")
+                for key, url_template in PLATFORM_URLS.items():
+                    if key.lower() in provider_name.lower():
+                        return provider_name, url_template.format(query=encoded_title)
+
+                tmdb_watch_link = region_data.get("link")
+                if tmdb_watch_link:
+                    return provider_name, tmdb_watch_link
+    except Exception:
+        pass
+
+    return "Netflix", f"https://www.netflix.com/search?q={encoded_title}"
+
+
+@st.cache_data(ttl=86400, show_spinner=False)
+def get_runtime(movie_id):
+    """Fetch movie runtime in minutes from TMDB."""
+    try:
+        session = get_tmdb_session()
+        r = session.get(f"{TMDB_BASE}/movie/{movie_id}", params={"api_key": API_KEY}, timeout=8)
+        if r.status_code == 200:
+            val = r.json().get("runtime")
+            if val:
+                return val
+    except Exception:
+        pass
+    return "N/A"
+
+
+def get_card_action_links(movie_id, title):
+    """Returns (trailer_url, provider_name, watch_url) with safe fallbacks."""
+    trailer_url = get_trailer_url(movie_id)
+    if not trailer_url:
+        encoded = urllib.parse.quote_plus(f"{title} official trailer")
+        trailer_url = f"https://www.youtube.com/results?search_query={encoded}"
+
+    provider_name, watch_url = get_streaming_info(movie_id, title)
+    return trailer_url, provider_name, watch_url
 
 
 def recommend(movie_title, top_n=10):
@@ -209,11 +430,12 @@ def esc(text):
 
 
 def render_grid_card(movie, col, index, key_prefix="grid"):
-    moviePoster, movieRating, movieRelease, _, movieGenres = fetch_movie(
-        movie["movie_id"]
-    )
+    movie_id = movie["movie_id"]
+    raw_title = str(movie["title"])
+    moviePoster, movieRating, movieRelease, _, movieGenres = fetch_movie(movie_id, title=raw_title)
+    trailer_url, provider_name, watch_url = get_card_action_links(movie_id, raw_title)
 
-    year = movieRelease[:4] if movieRelease != "Unknown" else "N/A"
+    year = movieRelease[:4] if movieRelease and movieRelease != "Unknown" else "N/A"
 
     # NEW ribbon
     ribbon_html = (
@@ -224,10 +446,8 @@ def render_grid_card(movie, col, index, key_prefix="grid"):
 
     # Match score
     match_html = ""
-
     if "match_score" in movie.index and pd.notna(movie.get("match_score")):
         score = int(movie["match_score"])
-
         match_html = f"""
             <div class="match-section">
                 <div class="match-bar-track">
@@ -242,7 +462,7 @@ def render_grid_card(movie, col, index, key_prefix="grid"):
     # Rating
     try:
         rating_display = round(float(movieRating), 1)
-    except:
+    except Exception:
         rating_display = movieRating
 
     rating_class = rating_bucket(movieRating)
@@ -251,11 +471,13 @@ def render_grid_card(movie, col, index, key_prefix="grid"):
     genre = (
         movieGenres.split(",")[0].strip()
         if movieGenres and movieGenres != "Unknown"
-        else "Unknown"
+        else "Movie"
     )
 
     # Escape text that comes from movie data
-    title = str(movie["title"]).replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;")
+    title = esc(raw_title)
+    safe_provider = esc(provider_name)
+    fallback_poster = make_fallback_poster_svg(raw_title)
 
     card_html = f"""
     <div class="poster-card">
@@ -263,6 +485,9 @@ def render_grid_card(movie, col, index, key_prefix="grid"):
         <img
             src="{moviePoster}"
             class="poster-image"
+            alt="{title}"
+            loading="lazy"
+            onerror="this.onerror=null;this.src='{fallback_poster}';"
         >
 
         {ribbon_html}
@@ -285,23 +510,30 @@ def render_grid_card(movie, col, index, key_prefix="grid"):
 
             {match_html}
 
+            <div class="card-actions">
+                <a href="{trailer_url}" target="_blank" rel="noopener noreferrer" class="card-btn btn-trailer" title="Watch Official Trailer">
+                    ▶ Trailer
+                </a>
+                <a href="{watch_url}" target="_blank" rel="noopener noreferrer" class="card-btn btn-watch" title="Watch on {safe_provider}">
+                    🍿 Watch
+                </a>
+            </div>
+
         </div>
 
     </div>
     """
 
     with col:
-
-        # IMPORTANT:
-        # Use st.html instead of st.markdown
+        # IMPORTANT: Use st.html instead of st.markdown
         st.html(card_html)
 
         list_button(
-            movie["title"],
+            raw_title,
             "favorites",
             "Fav",
             "❤️",
-            key=f"{key_prefix}_fav_{index}_{movie['movie_id']}"
+            key=f"{key_prefix}_fav_{index}_{movie_id}"
         )
 
 
@@ -309,7 +541,8 @@ def render_grid_card(movie, col, index, key_prefix="grid"):
 def get_genre_map():
     """name -> id, for the genre filter UI."""
     try:
-        r = requests.get(f"{TMDB_BASE}/genre/movie/list", params={"api_key": API_KEY}, timeout=10)
+        session = get_tmdb_session()
+        r = session.get(f"{TMDB_BASE}/genre/movie/list", params={"api_key": API_KEY}, timeout=8)
         if r.status_code != 200:
             return {}
         return {g["name"]: g["id"] for g in r.json().get("genres", [])}
@@ -322,6 +555,7 @@ def discover_movies(mode="trending", genre_id=None):
     """Fetch a page of movies for Trending / Top Rated / By Genre browsing.
     Returns raw TMDB result dicts (title, poster_path, vote_average, release_date, id)."""
     try:
+        session = get_tmdb_session()
         if mode == "trending":
             url, params = f"{TMDB_BASE}/trending/movie/week", {"api_key": API_KEY}
         elif mode == "top_rated":
@@ -330,7 +564,7 @@ def discover_movies(mode="trending", genre_id=None):
             url = f"{TMDB_BASE}/discover/movie"
             params = {"api_key": API_KEY, "with_genres": genre_id, "sort_by": "popularity.desc"}
 
-        r = requests.get(url, params=params, timeout=10)
+        r = session.get(url, params=params, timeout=8)
         if r.status_code != 200:
             return []
         return r.json().get("results", [])[:10]
@@ -342,7 +576,8 @@ def discover_movies(mode="trending", genre_id=None):
 def get_credits(movie_id):
     """Top billed cast for a movie, with headshots."""
     try:
-        r = requests.get(f"{TMDB_BASE}/movie/{movie_id}/credits", params={"api_key": API_KEY}, timeout=10)
+        session = get_tmdb_session()
+        r = session.get(f"{TMDB_BASE}/movie/{movie_id}/credits", params={"api_key": API_KEY}, timeout=8)
         if r.status_code != 200:
             return []
         cast = r.json().get("cast", [])[:8]
@@ -353,7 +588,7 @@ def get_credits(movie_id):
                 "profile": (
                     "https://image.tmdb.org/t/p/w200" + c["profile_path"]
                     if c.get("profile_path")
-                    else "https://via.placeholder.com/200x200?text=%3F"
+                    else make_fallback_avatar_svg(c["name"])
                 ),
             }
             for c in cast
@@ -363,34 +598,18 @@ def get_credits(movie_id):
 
 
 @st.cache_data(ttl=86400, show_spinner=False)
-def get_trailer_url(movie_id):
-    """Official YouTube trailer URL, or None if not found."""
-    try:
-        r = requests.get(f"{TMDB_BASE}/movie/{movie_id}/videos", params={"api_key": API_KEY}, timeout=10)
-        if r.status_code != 200:
-            return None
-        vids = r.json().get("results", [])
-        trailers = [v for v in vids if v.get("type") == "Trailer" and v.get("site") == "YouTube"]
-        if not trailers:
-            return None
-        official = [v for v in trailers if v.get("official")]
-        pick = official[0] if official else trailers[0]
-        return f"https://www.youtube.com/watch?v={pick['key']}"
-    except Exception:
-        return None
-
-@st.cache_data(ttl=86400, show_spinner=False)
 def find_tmdb_movie(title):
     """Find a TMDB movie ID using its title."""
     try:
-        r = requests.get(
+        session = get_tmdb_session()
+        r = session.get(
             f"{TMDB_BASE}/search/movie",
             params={
                 "api_key": API_KEY,
                 "query": title,
                 "include_adult": False,
             },
-            timeout=10,
+            timeout=8,
         )
 
         if r.status_code != 200:
@@ -417,12 +636,13 @@ def find_tmdb_movie(title):
 def get_tmdb_recommendations(movie_id, limit=5):
     """Get TMDB recommendations for a movie."""
     try:
-        r = requests.get(
+        session = get_tmdb_session()
+        r = session.get(
             f"{TMDB_BASE}/movie/{movie_id}/recommendations",
             params={
                 "api_key": API_KEY,
             },
-            timeout=10,
+            timeout=8,
         )
 
         if r.status_code != 200:
@@ -439,7 +659,7 @@ def get_tmdb_recommendations(movie_id, limit=5):
         return results[:limit]
 
     except Exception:
-        return []  
+        return []
 
 
 def render_trailer_block(movie_id, fallback_title):
@@ -485,22 +705,24 @@ def rate_movie(title, key):
 
 
 def render_discover_card(movie, col, index, key_prefix):
+    movie_id = movie.get("id")
+    title = movie.get("title") or movie.get("name") or "Unknown"
+    fallback_poster = make_fallback_poster_svg(title)
     poster = (
         "https://image.tmdb.org/t/p/w500" + movie["poster_path"]
         if movie.get("poster_path")
-        else "https://via.placeholder.com/300x450?text=No+Poster"
+        else fallback_poster
     )
 
-    rating = movie.get("vote_average", "N/A")
-
-    if isinstance(rating, (int, float)):
+    rating = movie.get("vote_average", "NR")
+    if isinstance(rating, (int, float)) and rating > 0:
         rating_display = round(rating, 1)
+    elif rating == "NR":
+        rating_display = "NR"
     else:
-        rating_display = rating
+        rating_display = rating or "NR"
 
     year = (movie.get("release_date") or "")[:4] or "N/A"
-
-    title = movie.get("title") or movie.get("name") or "Unknown"
 
     ribbon_html = (
         '<span class="new-ribbon">NEW</span>'
@@ -510,12 +732,9 @@ def render_discover_card(movie, col, index, key_prefix):
 
     rating_class = rating_bucket(rating)
 
-    safe_title = (
-        str(title)
-        .replace("&", "&amp;")
-        .replace("<", "&lt;")
-        .replace(">", "&gt;")
-    )
+    trailer_url, provider_name, watch_url = get_card_action_links(movie_id, title)
+    safe_title = esc(title)
+    safe_provider = esc(provider_name)
 
     card_html = f"""
     <div class="poster-card">
@@ -523,6 +742,9 @@ def render_discover_card(movie, col, index, key_prefix):
         <img
             src="{poster}"
             class="poster-image"
+            alt="{safe_title}"
+            loading="lazy"
+            onerror="this.onerror=null;this.src='{fallback_poster}';"
         >
 
         {ribbon_html}
@@ -541,13 +763,21 @@ def render_discover_card(movie, col, index, key_prefix):
                 📅 {year}
             </div>
 
+            <div class="card-actions">
+                <a href="{trailer_url}" target="_blank" rel="noopener noreferrer" class="card-btn btn-trailer" title="Watch Official Trailer">
+                    ▶ Trailer
+                </a>
+                <a href="{watch_url}" target="_blank" rel="noopener noreferrer" class="card-btn btn-watch" title="Watch on {safe_provider}">
+                    🍿 Watch
+                </a>
+            </div>
+
         </div>
 
     </div>
     """
 
     with col:
-
         st.html(card_html)
 
         list_button(
@@ -555,102 +785,107 @@ def render_discover_card(movie, col, index, key_prefix):
             "favorites",
             "Fav",
             "❤️",
-            key=f"{key_prefix}_fav_{index}_{movie.get('id')}"
+            key=f"{key_prefix}_fav_{index}_{movie_id}"
         )
 
 # -------------------------------------------------
-# HERO BANNER
+# HERO BANNER (Netflix style — driven by Today's Pick movie)
 # -------------------------------------------------
 
-st.html(
-    f"""
-    <div class="hero">
-        <!-- Floating Animated Diamonds/Sparkles -->
-        <div class="sparkle-diamond" style="top: 15%; left: 8%;">✨</div>
-        <div class="sparkle-diamond" style="top: 20%; right: 10%; font-size: 30px;">💎</div>
-        <div class="sparkle-diamond" style="bottom: 25%; left: 18%; font-size: 18px;">✨</div>
-        <div class="sparkle-diamond" style="bottom: 15%; right: 20%; font-size: 22px;">⭐</div>
-        
-        <div class="hero-badge">
-            <span>✨ CineVerse v2.1</span>
-            <span>•</span>
-            <span>🤖 AI Engine Active</span>
+_hero_movie = st.session_state.random_movie
+_hero_poster, _hero_rating, _hero_release, _hero_overview, _hero_genres = fetch_movie(
+    _hero_movie["movie_id"], title=_hero_movie["title"]
+)
+_hero_year  = _hero_release[:4] if _hero_release and _hero_release != "Unknown" else "N/A"
+_hero_genre_first = _hero_genres.split(",")[0].strip() if _hero_genres and _hero_genres != "Unknown" else "Movie"
+_hero_short_overview = (_hero_overview[:180] + "…") if len(_hero_overview) > 180 else _hero_overview
+_hero_trailer_url, _hero_provider, _hero_watch_url = get_card_action_links(_hero_movie["movie_id"], _hero_movie["title"])
+_hero_fallback = make_fallback_poster_svg(_hero_movie["title"])
+
+st.html(f"""
+<div class="nf-hero" style="background-image:
+    linear-gradient(to right, rgba(20,20,20,0.97) 0%, rgba(20,20,20,0.75) 40%, rgba(20,20,20,0.1) 70%, transparent 100%),
+    linear-gradient(to top, rgba(20,20,20,0.9) 0%, transparent 40%),
+    url('{_hero_poster}');">
+    <div class="nf-hero-content">
+        <div class="nf-hero-logo">🎬 CINEVERSE AI</div>
+        <h1 class="nf-hero-title">{esc(_hero_movie["title"])}</h1>
+        <div class="nf-hero-meta">
+            <span class="nf-hero-rating">⭐ {_hero_rating}</span>
+            <span class="nf-hero-year">{_hero_year}</span>
+            <span class="nf-hero-genre">{_hero_genre_first}</span>
+            <span class="nf-hero-catalog">🍿 {len(movies):,} Films</span>
         </div>
-        
-        <h1>🎬 CineVerse AI</h1>
-        <p>Discover Movies Powered By Artificial Intelligence</p>
-        
-        <div class="hero-stats">
-            <div class="hero-pill">🍿 <b>{len(movies):,}</b> Movies Catalog</div>
-            <div class="hero-pill">❤️ <b>{len(st.session_state.favorites)}</b> Favorites</div>
-            <div class="hero-pill">📋 <b>{len(st.session_state.watchlist)}</b> Watchlist</div>
+        <p class="nf-hero-overview">{esc(_hero_short_overview)}</p>
+        <div class="nf-hero-btns">
+            <a href="{_hero_watch_url}" target="_blank" rel="noopener noreferrer" class="nf-btn-play">
+                ▶ Play
+            </a>
+            <a href="{_hero_trailer_url}" target="_blank" rel="noopener noreferrer" class="nf-btn-info">
+                ℹ More Info
+            </a>
         </div>
     </div>
-    """
-)
+</div>
+""")
 
 # -------------------------------------------------
-# ENHANCED SIDEBAR
+# SIDEBAR  (Netflix-style compact)
 # -------------------------------------------------
 
 with st.sidebar:
-    # Branding Header
-    st.markdown(
-        """
-        <div class="sb-header">
-            <div class="sb-logo">🎬</div>
-            <div>
-                <h2 class="sb-title">CineVerse AI</h2>
-                <span class="sb-status">● Engine Online v2.1</span>
-            </div>
+    st.markdown("""
+    <div class="sb-header">
+        <div class="sb-logo">🎬</div>
+        <div>
+            <h2 class="sb-title">CineVerse AI</h2>
+            <span class="sb-status">● AI Engine Active</span>
         </div>
-        """,
-        unsafe_allow_html=True
-    )
-    
+    </div>
+    """, unsafe_allow_html=True)
+
     st.divider()
 
-    # Quick Stats Grid
+    # Quick Stats
     s_col1, s_col2 = st.columns(2)
     with s_col1:
         st.metric("🎞️ Catalog", f"{len(movies):,}")
-        st.metric("❤️ Favorites", len(st.session_state.favorites))
+        st.metric("❤️ Favs", len(st.session_state.favorites))
     with s_col2:
         st.metric("📋 Watchlist", len(st.session_state.watchlist))
         avg_r = (
             round(sum(st.session_state.ratings.values()) / len(st.session_state.ratings), 1)
             if st.session_state.ratings else "–"
         )
-        st.metric("⭐ Avg Rating", avg_r)
+        st.metric("⭐ Avg", avg_r)
 
     st.divider()
 
-    # Surprise Movie Generator
+    # Surprise
     st.markdown("### 🎲 Quick Spin")
     if st.button("✨ Surprise Movie", use_container_width=True, key="sb_surprise"):
         st.session_state.random_movie = movies.sample(1).iloc[0]
         st.rerun()
 
     rand_m = st.session_state.random_movie
-    p_poster, p_rating, p_release, _, _ = fetch_movie(rand_m["movie_id"])
-    st.html(
-        f"""
+    p_poster, p_rating, p_release, _, _ = fetch_movie(rand_m["movie_id"], title=rand_m["title"])
+    p_year = p_release[:4] if p_release and p_release != "Unknown" else "N/A"
+    p_fallback = make_fallback_poster_svg(rand_m["title"])
+    st.html(f"""
         <div class="sb-surprise-card">
-            <img src="{p_poster}" class="sb-surprise-img">
+            <img src="{p_poster}" class="sb-surprise-img" alt="{esc(rand_m['title'])}" onerror="this.onerror=null;this.src='{p_fallback}';">
             <div class="sb-surprise-info">
                 <div class="sb-surprise-title">{esc(rand_m['title'])}</div>
-                <div class="sb-surprise-meta">⭐ {p_rating} • 📅 {p_release[:4]}</div>
+                <div class="sb-surprise-meta">⭐ {p_rating} • 📅 {p_year}</div>
             </div>
         </div>
-        """
-    )
+    """)
 
     st.divider()
 
-    # Quick List Management
-    with st.expander("❤️ Favorites Quick Access", expanded=False):
+    with st.expander("❤️ Favorites", expanded=False):
         if not st.session_state.favorites:
-            st.caption("No favorites saved yet.")
+            st.caption("No favorites yet.")
         else:
             for fav_title in st.session_state.favorites[:5]:
                 f_col1, f_col2 = st.columns([4, 1])
@@ -662,7 +897,7 @@ with st.sidebar:
             if len(st.session_state.favorites) > 5:
                 st.caption(f"…and {len(st.session_state.favorites) - 5} more in **My Lists**.")
 
-    with st.expander("📋 Watchlist Quick Access", expanded=False):
+    with st.expander("📋 Watchlist", expanded=False):
         if not st.session_state.watchlist:
             st.caption("Watchlist is empty.")
         else:
@@ -677,17 +912,83 @@ with st.sidebar:
                 st.caption(f"…and {len(st.session_state.watchlist) - 5} more in **My Lists**.")
 
     st.divider()
+    st.markdown("""
+    <div class="sb-footer">
+        <div class="sb-footer-badge">Developed by <b>Amit Akhade</b></div>
+        <div class="sb-footer-sub">Final Year Project • 2026</div>
+    </div>
+    """, unsafe_allow_html=True)
 
-    # Developer Footer Card
-    st.markdown(
-        """
-        <div class="sb-footer">
-            <div class="sb-footer-badge">Developed by <b>Amit Akhade</b></div>
-            <div class="sb-footer-sub">Final Year Project • 2026</div>
+
+# -------------------------------------------------
+# NETFLIX HORIZONTAL CAROUSEL ROW HELPER
+# -------------------------------------------------
+
+def render_nf_row(title: str, movies_list, key_prefix: str, show_match: bool = False):
+    """Render a horizontally scrollable Netflix-style row of movie cards."""
+    if not movies_list:
+        return
+
+    # Build card HTML for every movie in the row
+    cards_html = ""
+    for idx, movie in enumerate(movies_list):
+        movie_id   = movie.get("movie_id") if hasattr(movie, "get") else movie["movie_id"]
+        raw_title  = str(movie.get("title") if hasattr(movie, "get") else movie["title"])
+        poster, rating, release, _, genres = fetch_movie(movie_id, title=raw_title)
+        trailer_url, provider_name, watch_url = get_card_action_links(movie_id, raw_title)
+        fallback   = make_fallback_poster_svg(raw_title)
+        year       = (release[:4] if release and release != "Unknown" else "N/A")
+        genre      = genres.split(",")[0].strip() if genres and genres != "Unknown" else "Movie"
+        try:
+            rating_val = round(float(rating), 1)
+        except Exception:
+            rating_val = rating
+        r_class    = rating_bucket(rating)
+        safe_title = esc(raw_title)
+        safe_prov  = esc(provider_name)
+
+        match_html = ""
+        if show_match and hasattr(movie, "get") and movie.get("match_score") is not None:
+            try:
+                sc = int(movie["match_score"])
+                match_html = f'<div class="nf-card-match">🎯 {sc}% Match</div>'
+            except Exception:
+                pass
+
+        ribbon_html = '<span class="new-ribbon">NEW</span>' if is_new_release(year) else ""
+
+        cards_html += f"""
+        <div class="nf-card">
+            <div class="nf-card-inner">
+                <img class="nf-card-img" src="{poster}" alt="{safe_title}" loading="lazy"
+                     onerror="this.onerror=null;this.src='{fallback}';">
+                {ribbon_html}
+                <span class="rating-badge {r_class}">⭐ {rating_val}</span>
+                <div class="nf-card-hover">
+                    <div class="nf-card-info">
+                        <div class="nf-card-title">{safe_title}</div>
+                        <div class="nf-card-meta">📅 {year} &nbsp;•&nbsp; 🎭 {genre}</div>
+                        {match_html}
+                    </div>
+                    <div class="nf-card-actions">
+                        <a href="{trailer_url}" target="_blank" rel="noopener noreferrer"
+                           class="nf-btn-trailer" title="Watch Trailer">▶ Trailer</a>
+                        <a href="{watch_url}" target="_blank" rel="noopener noreferrer"
+                           class="nf-btn-watch" title="Watch on {safe_prov}">🍿 Watch</a>
+                    </div>
+                </div>
+            </div>
         </div>
-        """,
-        unsafe_allow_html=True
-    )
+        """
+
+    st.html(f"""
+    <div class="nf-row">
+        <div class="nf-row-title">{title}</div>
+        <div class="nf-row-scroll">
+            {cards_html}
+        </div>
+    </div>
+    """)
 
 # -------------------------------------------------
 # TABS
@@ -712,31 +1013,50 @@ with tab_pick:
         st.rerun()
 
     random_movie = st.session_state.random_movie
-    poster, rating, release, overview, genres = fetch_movie(random_movie["movie_id"])
-    year = release[:4] if release != "Unknown" else "N/A"
+    poster, rating, release, overview, genres = fetch_movie(random_movie["movie_id"], title=random_movie["title"])
+    year = release[:4] if release and release != "Unknown" else "N/A"
+    pick_trailer_url, pick_provider, pick_watch_url = get_card_action_links(
+        random_movie["movie_id"], random_movie["title"]
+    )
+    genre_first = genres.split(",")[0].strip() if genres and genres != "Unknown" else "Movie"
+    short_overview = overview[:200] + "…" if len(overview) > 200 else overview
+    pick_fallback = make_fallback_poster_svg(random_movie["title"])
 
-    left, right = st.columns([1, 2])
-    with left:
-        st.markdown(
-            f"""
-            <div class="poster-hero" style="--poster-url:url('{poster}')">
-                <span class="rating-badge {rating_bucket(rating)}">⭐ {rating}</span>
+    # Netflix-style full hero for Today's Pick
+    st.html(f"""
+    <div class="nf-hero" style="background-image:
+        linear-gradient(to right, rgba(20,20,20,0.97) 0%, rgba(20,20,20,0.72) 42%, rgba(20,20,20,0.08) 70%, transparent 100%),
+        linear-gradient(to top, rgba(20,20,20,0.92) 0%, transparent 40%),
+        url('{poster}');">
+        <div class="nf-hero-content">
+            <div class="nf-hero-logo">🌟 TODAY'S PICK</div>
+            <h1 class="nf-hero-title">{esc(random_movie["title"])}</h1>
+            <div class="nf-hero-meta">
+                <span class="nf-hero-rating">⭐ {rating}</span>
+                <span class="nf-hero-year">{year}</span>
+                <span class="nf-hero-genre">{genre_first}</span>
             </div>
-            """,
-            unsafe_allow_html=True,
-        )
-    with right:
-        st.markdown(f"### 🎬 {random_movie['title']}")
-        c1, c2 = st.columns(2)
-        c1.metric("⭐ Rating", rating)
-        c2.metric("📅 Year", year)
-        st.caption(f"🎭 {genres}")
-        short_overview = overview[:220] + "..." if len(overview) > 220 else overview
-        st.write(short_overview)
+            <p class="nf-hero-overview">{esc(short_overview)}</p>
+            <div class="nf-hero-btns">
+                <a href="{pick_watch_url}" target="_blank" rel="noopener noreferrer" class="nf-btn-play">▶ Play</a>
+                <a href="{pick_trailer_url}" target="_blank" rel="noopener noreferrer" class="nf-btn-info">ℹ Trailer</a>
+            </div>
+        </div>
+    </div>
+    """)
 
-        st.write("")
-        list_button(random_movie["title"], "favorites", "Favorite", "❤️", key="fav_pick")
+    # Favourite + trailer below
+    col_fav, col_trailer = st.columns([1, 3])
+    with col_fav:
+        list_button(random_movie["title"], "favorites", "Add to Favorites", "❤️", key="fav_pick")
+    with col_trailer:
         render_trailer_block(random_movie["movie_id"], random_movie["title"])
+
+    # "You might also like" row driven by recommendations
+    if random_movie["title"] in movies["title"].values:
+        _pick_recs = recommend(random_movie["title"], top_n=10)
+        _pick_movies_list = [row for _, row in _pick_recs.iterrows()]
+        render_nf_row("🎯 You Might Also Like", _pick_movies_list, "pick_reco", show_match=True)
 
 # ---------------- SEARCH & DETAILS ----------------
 with tab_search:
@@ -753,46 +1073,51 @@ with tab_search:
         st.session_state.last_selected = selected_movie
 
     selected = movies[movies["title"] == selected_movie].iloc[0]
-    poster, rating, release, overview, genres = fetch_movie(selected["movie_id"])
+    poster, rating, release, overview, genres = fetch_movie(selected["movie_id"], title=selected["title"])
+    year = release[:4] if release and release != "Unknown" else "N/A"
+    sel_trailer_url, sel_provider, sel_watch_url = get_card_action_links(
+        selected["movie_id"], selected["title"]
+    )
+    sel_genre_first = genres.split(",")[0].strip() if genres and genres != "Unknown" else "Movie"
+    sel_fallback = make_fallback_poster_svg(selected["title"])
+    sel_short_ov = overview[:200] + "…" if len(overview) > 200 else overview
 
-    st.divider()
-    left, right = st.columns([1, 2])
-
-    with left:
-        st.markdown(
-            f"""
-            <div class="poster-hero" style="--poster-url:url('{poster}')">
-                <span class="rating-badge {rating_bucket(rating)}">⭐ {rating}</span>
+    # Netflix hero for selected movie
+    st.html(f"""
+    <div class="nf-hero" style="background-image:
+        linear-gradient(to right, rgba(20,20,20,0.97) 0%, rgba(20,20,20,0.72) 42%, rgba(20,20,20,0.08) 70%, transparent 100%),
+        linear-gradient(to top, rgba(20,20,20,0.92) 0%, transparent 40%),
+        url('{poster}');">
+        <div class="nf-hero-content">
+            <div class="nf-hero-logo">🔍 MOVIE DETAILS</div>
+            <h1 class="nf-hero-title">{esc(selected["title"])}</h1>
+            <div class="nf-hero-meta">
+                <span class="nf-hero-rating">⭐ {rating}</span>
+                <span class="nf-hero-year">{year}</span>
+                <span class="nf-hero-genre">{sel_genre_first}</span>
             </div>
-            """,
+            <p class="nf-hero-overview">{esc(sel_short_ov)}</p>
+            <div class="nf-hero-btns">
+                <a href="{sel_watch_url}" target="_blank" rel="noopener noreferrer" class="nf-btn-play">▶ Watch</a>
+                <a href="{sel_trailer_url}" target="_blank" rel="noopener noreferrer" class="nf-btn-info">ℹ Trailer</a>
+            </div>
+        </div>
+    </div>
+    """)
+
+    # Genre chips + actions below hero
+    if genres and genres != "Unknown":
+        st.markdown(
+            " ".join(f'<span class="genre">{g.strip()}</span>' for g in genres.split(",")),
             unsafe_allow_html=True,
         )
 
-    with right:
-        st.title(selected["title"])
-
-        c1, c2, c3 = st.columns(3)
-        c1.metric("⭐ Rating", rating)
-        c2.metric("📅 Release", release[:4] if release != "Unknown" else "N/A")
-        c3.metric("🎭 Genres", len(genres.split(",")) if genres != "Unknown" else 0)
-
-        st.markdown("### Overview")
-        st.write(overview)
-
-        if genres != "Unknown":
-            st.markdown(
-                " ".join(f'<span class="genre">{g.strip()}</span>' for g in genres.split(",")),
-                unsafe_allow_html=True,
-            )
-
-        st.write("")
-        colA, colB = st.columns(2)
-        with colA:
-            list_button(selected["title"], "favorites", "Favorite", "❤️", key="fav_detail")
-        with colB:
-            list_button(selected["title"], "watchlist", "Watchlist", "📋", key="watch_detail")
-
-        st.write("")
+    colA, colB, colC = st.columns(3)
+    with colA:
+        list_button(selected["title"], "favorites", "❤️ Favorite", "❤️", key="fav_detail")
+    with colB:
+        list_button(selected["title"], "watchlist", "📋 Watchlist", "📋", key="watch_detail")
+    with colC:
         st.markdown("### ⭐ Your Rating")
         rate_movie(selected["title"], key="rate_detail")
 
@@ -804,37 +1129,34 @@ with tab_search:
     st.markdown("### ▶ Trailer")
     render_trailer_block(selected["movie_id"], selected["title"])
 
+    # Similar movies row
+    if selected["title"] in movies["title"].values:
+        _sim_recs = recommend(selected["title"], top_n=10)
+        render_nf_row("🎯 More Like This", [row for _, row in _sim_recs.iterrows()], "search_sim", show_match=True)
+
 # ---------------- RECOMMENDATIONS ----------------
 with tab_reco:
     # 1. Improved Header UI
     current_selection = st.session_state.get('last_selected', selected_movie)
-    st.markdown(
-        f"""
-        <div style="text-align:center; padding: 10px 0 20px 0;">
-            <h2 style="margin-bottom: 5px;">🎯 AI Matchmaker</h2>
-            <p style="color: var(--text-muted); font-size: 16px;">
-                Discover your next favorite movie based on <b>{esc(current_selection)}</b>
-            </p>
-        </div>
-        """, 
-        unsafe_allow_html=True
-    )
+    st.html(f"""
+    <div style="padding: 12px 0 18px 0; text-align:center;">
+        <h2 style="margin-bottom:5px; font-family:'Bebas Neue',sans-serif; font-size:32px; letter-spacing:1px; color:#E50914;">
+            🎯 AI Matchmaker
+        </h2>
+        <p style="color:#BCBCBC; font-size:15px; margin:0;">
+            Based on <b style="color:white;">{esc(current_selection)}</b>
+        </p>
+    </div>
+    """)
 
-    # 2. Compact Control Panel (Side-by-Side)
     ctrl_left, ctrl_right = st.columns([2, 1])
-    
     with ctrl_left:
-        num_reco = st.slider(
-            "How many recommendations do you want?", 
-            min_value=5, max_value=20, value=10, step=5
-        )
-        
+        num_reco = st.slider("How many recommendations?", min_value=5, max_value=20, value=10, step=5)
     with ctrl_right:
-        st.write("") # Vertical spacing to align with the slider
+        st.write("")
         st.write("")
         recommend_btn = st.button("🎬 Generate Matches", use_container_width=True)
 
-    # 3. Recommendation Logic
     if recommend_btn:
         with st.spinner("🤖 AI is analyzing genres, cast, and cinematic themes..."):
             recommendations = recommend(current_selection, top_n=num_reco)
@@ -843,177 +1165,65 @@ with tab_reco:
             {"movie": current_selection, "count": num_reco, "time": datetime.now().strftime("%d-%m-%Y %H:%M")}
         )
         st.session_state.last_recommendations = recommendations
-        st.success(f"✨ Successfully found the top {len(recommendations)} matches for you!")
+        st.success(f"✨ Found top {len(recommendations)} matches!")
 
-    # 4. Scrollable Results Area
     if "last_recommendations" in st.session_state:
         recommendations = st.session_state.last_recommendations
-        
-        st.divider()
-        st.markdown("### 🍿 Your Custom Matches")
-        
-        # This creates the built-in vertical scrollbar!
-        scroll_container = st.container(height=700, border=False)
-        
-        with scroll_container:
-            per_row = 5
-            for row_start in range(0, len(recommendations), per_row):
-                row_movies = recommendations.iloc[row_start: row_start + per_row]
-                cols = st.columns(per_row)
-                for i, (_, movie) in enumerate(row_movies.iterrows()):
-                    # Reusing your excellent poster card UI
-                    render_grid_card(movie, cols[i], row_start + i, key_prefix="reco")
+        reco_list = [row for _, row in recommendations.iterrows()]
+        # Split into two Netflix rows of up to 10
+        render_nf_row(f"🎯 Top Picks Based on {esc(current_selection)}", reco_list[:10], "reco_top", show_match=True)
+        if len(reco_list) > 10:
+            render_nf_row("🍿 More Matches", reco_list[10:], "reco_more", show_match=True)
 
 # ---------------- DISCOVER ----------------
 with tab_discover:
 
-    st.subheader("🔥 Discover")
+    st.markdown('<div class="nf-section-title">🔥 Discover</div>', unsafe_allow_html=True)
 
-    # =================================================
-    # BECAUSE YOU LIKED
-    # =================================================
-
+    # Because You Liked rows
     if st.session_state.favorites:
-
-        st.markdown(
-            """
-            <div class="discover-heading">
-                <h2>💡 Because You Liked...</h2>
-                <p>Personalized recommendations based on your favorite movies</p>
-            </div>
-            """,
-            unsafe_allow_html=True,
-        )
-
-        # Select and remember random favorites
         if "discover_favorite_picks" not in st.session_state:
-
-            pick_count = min(
-                2,
-                len(st.session_state.favorites)
-            )
-
+            pick_count = min(2, len(st.session_state.favorites))
             st.session_state.discover_favorite_picks = (
-                pd.Series(
-                    st.session_state.favorites
-                )
-                .sample(n=pick_count)
-                .tolist()
+                pd.Series(st.session_state.favorites).sample(n=pick_count).tolist()
             )
 
-        # Shuffle button
-        if st.button(
-            "🔄 Shuffle Picks",
-            use_container_width=True,
-            key="shuffle_discover"
-        ):
-
-            pick_count = min(
-                2,
-                len(st.session_state.favorites)
-            )
-
+        if st.button("🔄 Shuffle Picks", use_container_width=True, key="shuffle_discover"):
+            pick_count = min(2, len(st.session_state.favorites))
             st.session_state.discover_favorite_picks = (
-                pd.Series(
-                    st.session_state.favorites
-                )
-                .sample(n=pick_count)
-                .tolist()
+                pd.Series(st.session_state.favorites).sample(n=pick_count).tolist()
             )
-
             st.rerun()
 
-        # Show recommendations for selected favorites
         for fav_title in st.session_state.discover_favorite_picks:
-
             if fav_title in movies["title"].values:
-
-                st.markdown(
-                    f"""
-                    <div class="because-liked">
-                        ❤️ Because you liked:
-                        <b>{fav_title}</b>
-                    </div>
-                    """,
-                    unsafe_allow_html=True,
+                recs = recommend(fav_title, top_n=10)
+                render_nf_row(
+                    f"❤️ Because You Liked: {fav_title}",
+                    [row for _, row in recs.iterrows()],
+                    f"because_{fav_title[:12]}"
                 )
-
-                recs = recommend(
-                    fav_title,
-                    top_n=5
-                )
-
-                cols = st.columns(5)
-
-                for i, (_, movie) in enumerate(
-                    recs.iterrows()
-                ):
-
-                    render_grid_card(
-                        movie,
-                        cols[i],
-                        i,
-                        key_prefix=f"because_{fav_title}"
-                    )
-
     else:
+        st.info("❤️ Add movies to your Favorites to get personalized recommendations.")
 
-        st.info(
-            "❤️ Add movies to your Favorites to get personalized recommendations."
-        )
+    st.divider()
 
-    # =================================================
-    # SEPARATION
-    # =================================================
-
-    st.markdown(
-        """
-        <div class="discover-divider"></div>
-
-        <div class="discover-main-heading">
-            <h2>🔥 Discover More Movies</h2>
-            <p>Explore trending, top-rated and genre-based movies</p>
-        </div>
-        """,
-        unsafe_allow_html=True,
-    )
-
-    # =================================================
-    # NORMAL DISCOVER
-    # =================================================
-
+    # Trending / Top Rated / By Genre
     mode_label = st.radio(
         "Browse",
-        [
-            "Trending This Week",
-            "Top Rated",
-            "By Genre"
-        ],
+        ["Trending This Week", "Top Rated", "By Genre"],
         horizontal=True,
         key="discover_mode",
     )
 
     genre_id = None
-
     if mode_label == "By Genre":
-
         genre_map = get_genre_map()
-
         if genre_map:
-
-            genre_name = st.selectbox(
-                "Pick a genre",
-                list(genre_map.keys()),
-                key="discover_genre"
-            )
-
+            genre_name = st.selectbox("Pick a genre", list(genre_map.keys()), key="discover_genre")
             genre_id = genre_map[genre_name]
-
         else:
-
-            st.warning(
-                "Couldn't load the genre list right now."
-            )
+            st.warning("Couldn't load the genre list right now.")
 
     mode_key = {
         "Trending This Week": "trending",
@@ -1022,42 +1232,28 @@ with tab_discover:
     }[mode_label]
 
     if mode_key != "genre" or genre_id:
-
         with st.spinner("Fetching movies..."):
-
-            results = discover_movies(
-                mode=mode_key,
-                genre_id=genre_id
-            )
+            results = discover_movies(mode=mode_key, genre_id=genre_id)
 
         if not results:
-
-            st.info(
-                "No results right now."
-            )
-
+            st.info("No results right now.")
         else:
+            # Convert raw TMDB dicts so render_nf_row can consume them
+            def _tmdb_to_row(m):
+                """Wrap a raw TMDB result dict as a dict with 'movie_id' key."""
+                m2 = dict(m)
+                m2["movie_id"] = m.get("id")
+                m2["title"]    = m.get("title") or m.get("name") or "Unknown"
+                return m2
 
-            for row_start in range(
-                0,
-                len(results),
-                5
-            ):
+            disc_movies = [_tmdb_to_row(m) for m in results]
+            row_label = {
+                "trending": "🔥 Trending This Week",
+                "top_rated": "🏆 Top Rated",
+                "genre": f"🎭 {genre_name if genre_id else 'Genre'}"
+            }.get(mode_key, mode_label)
 
-                row = results[
-                    row_start:row_start + 5
-                ]
-
-                cols = st.columns(5)
-
-                for i, movie in enumerate(row):
-
-                    render_discover_card(
-                        movie,
-                        cols[i],
-                        row_start + i,
-                        key_prefix=mode_key
-                    )
+            render_nf_row(row_label, disc_movies, mode_key)
 
 # ---------------- COMPARE MOVIES ----------------
 with tab_compare:
@@ -1110,8 +1306,16 @@ with tab_compare:
     movie_a = movies[movies['title'] == movie_a_name].iloc[0]
     movie_b = movies[movies['title'] == movie_b_name].iloc[0]
 
-    post_a, rate_a, rel_a, run_a, gen_a = fetch_movie(movie_a["movie_id"])
-    post_b, rate_b, rel_b, run_b, gen_b = fetch_movie(movie_b["movie_id"])
+    post_a, rate_a, rel_a, ov_a, gen_a = fetch_movie(movie_a["movie_id"], title=movie_a_name)
+    post_b, rate_b, rel_b, ov_b, gen_b = fetch_movie(movie_b["movie_id"], title=movie_b_name)
+    run_a = get_runtime(movie_a["movie_id"])
+    run_b = get_runtime(movie_b["movie_id"])
+
+    fall_a = make_fallback_poster_svg(movie_a_name)
+    fall_b = make_fallback_poster_svg(movie_b_name)
+
+    trailer_a, prov_a, watch_a = get_card_action_links(movie_a["movie_id"], movie_a_name)
+    trailer_b, prov_b, watch_b = get_card_action_links(movie_b["movie_id"], movie_b_name)
 
     # Safe Float Conversion for Ratings
     try:
@@ -1130,14 +1334,19 @@ with tab_compare:
     with card_col1:
         winner_a = "🏆 HIGHER RATED" if val_rate_a > val_rate_b else ""
         badge_a_html = f'<div class="compare-winner-pill">{winner_a}</div>' if winner_a else ""
+        rel_a_year = rel_a[:4] if rel_a and rel_a != "Unknown" else "N/A"
         
         st.html(
             f"""
             <div class="compare-card">
                 {badge_a_html}
-                <img src="{post_a}" class="compare-poster">
+                <img src="{post_a}" class="compare-poster" alt="{esc(movie_a_name)}" onerror="this.onerror=null;this.src='{fall_a}';">
                 <h3 class="compare-title">{esc(movie_a_name)}</h3>
-                <div class="compare-meta">⭐ {rate_a} • 📅 {rel_a[:4] if rel_a else 'N/A'}</div>
+                <div class="compare-meta">⭐ {rate_a} • 📅 {rel_a_year}</div>
+                <div class="card-actions" style="max-width: 240px; margin: 12px auto 0;">
+                    <a href="{trailer_a}" target="_blank" rel="noopener noreferrer" class="card-btn btn-trailer">▶ Trailer</a>
+                    <a href="{watch_a}" target="_blank" rel="noopener noreferrer" class="card-btn btn-watch" title="Watch on {esc(prov_a)}">🍿 Watch</a>
+                </div>
             </div>
             """
         )
@@ -1145,14 +1354,19 @@ with tab_compare:
     with card_col2:
         winner_b = "🏆 HIGHER RATED" if val_rate_b > val_rate_a else ""
         badge_b_html = f'<div class="compare-winner-pill">{winner_b}</div>' if winner_b else ""
+        rel_b_year = rel_b[:4] if rel_b and rel_b != "Unknown" else "N/A"
 
         st.html(
             f"""
             <div class="compare-card">
                 {badge_b_html}
-                <img src="{post_b}" class="compare-poster">
+                <img src="{post_b}" class="compare-poster" alt="{esc(movie_b_name)}" onerror="this.onerror=null;this.src='{fall_b}';">
                 <h3 class="compare-title">{esc(movie_b_name)}</h3>
-                <div class="compare-meta">⭐ {rate_b} • 📅 {rel_b[:4] if rel_b else 'N/A'}</div>
+                <div class="compare-meta">⭐ {rate_b} • 📅 {rel_b_year}</div>
+                <div class="card-actions" style="max-width: 240px; margin: 12px auto 0;">
+                    <a href="{trailer_b}" target="_blank" rel="noopener noreferrer" class="card-btn btn-trailer">▶ Trailer</a>
+                    <a href="{watch_b}" target="_blank" rel="noopener noreferrer" class="card-btn btn-watch" title="Watch on {esc(prov_b)}">🍿 Watch</a>
+                </div>
             </div>
             """
         )
@@ -1203,56 +1417,30 @@ with tab_lists:
     # Sub-tabs to keep the UI clean instead of endless scrolling
     list_tabs = st.tabs(["❤️ Favorites", "🎬 Watchlist", "⭐ My Ratings", "⚙️ Manage & Export"])
     
-    # Helper function to render a list of titles as beautiful poster cards
-    def render_movie_grid(movie_titles, key_prefix):
+    # Helper function to render a list of titles as a Netflix carousel row
+    def render_movie_grid(movie_titles, key_prefix, section_title=""):
         if not movie_titles:
             st.info("Nothing here yet. Start exploring and add some movies!")
             return
             
         # Match titles from session state back to the main dataframe
         matched_movies = movies[movies['title'].isin(movie_titles)]
-        
-        # Display 5 posters per row
-        cols = st.columns(5)
-        for i, (_, movie) in enumerate(matched_movies.iterrows()):
-            render_grid_card(movie, cols[i % 5], i, key_prefix=key_prefix)
+        movie_list = [row for _, row in matched_movies.iterrows()]
+        render_nf_row(section_title or "Saved Movies", movie_list, key_prefix)
 
     with list_tabs[0]:
-        render_movie_grid(st.session_state.favorites, "list_fav")
+        render_movie_grid(st.session_state.favorites, "list_fav", "❤️ Your Favorites")
         
     with list_tabs[1]:
-        render_movie_grid(st.session_state.watchlist, "list_watch")
+        render_movie_grid(st.session_state.watchlist, "list_watch", "🎬 Your Watchlist")
         
     with list_tabs[2]:
         if not st.session_state.ratings:
             st.info("⭐ You haven't rated anything yet. Rate movies from the Search & Details tab.")
         else:
-            rate_cols = st.columns(5)
             rated_titles = list(st.session_state.ratings.keys())
             rated_movies = movies[movies['title'].isin(rated_titles)]
-            
-            for i, (_, movie) in enumerate(rated_movies.iterrows()):
-                title = movie['title']
-                score = st.session_state.ratings.get(title, 0)
-                
-                with rate_cols[i % 5]:
-                    # Fetch basic details for a custom rating display
-                    poster_url, _, release, _, _ = fetch_movie(movie["movie_id"])
-                    
-                    # Custom HTML for the rating cards
-                    st.html(
-                        f"""
-                        <div class="poster-card" style="margin-bottom: 20px;">
-                            <img src="{poster_url}" class="poster-image">
-                            <div class="card-overlay" style="padding: 12px; background: linear-gradient(0deg, rgba(5,6,9,1) 30%, transparent 100%);">
-                                <h4 class="movie-title" style="font-size: 16px; margin-bottom: 4px;">{esc(title)}</h4>
-                                <div style="color: #FFC94A; font-size: 16px; letter-spacing: 2px;">
-                                    {'⭐' * score}{'☆' * (5 - score)}
-                                </div>
-                            </div>
-                        </div>
-                        """
-                    )
+            render_nf_row("⭐ Rated by You", [row for _, row in rated_movies.iterrows()], "list_rated")
 
     with list_tabs[3]:
         st.subheader("📤 Export Data")
@@ -1342,7 +1530,7 @@ with tab_dash:
                 match = movies[movies["title"] == t]
                 if match.empty:
                     continue
-                _, _, _, _, genres_str = fetch_movie(match.iloc[0]["movie_id"])
+                _, _, _, _, genres_str = fetch_movie(match.iloc[0]["movie_id"], title=t)
                 primary = genres_str.split(",")[0].strip() if genres_str and genres_str != "Unknown" else "Other"
                 genre_counts[primary] = genre_counts.get(primary, 0) + 1
 
